@@ -1,10 +1,11 @@
 using System;
+using System.Linq;
 using AtomicRegistry.Configuration;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using Vostok.Configuration;
-using Vostok.Configuration.Sources.Json;
+using Newtonsoft.Json;
+using Vostok.Configuration.Sources.Yaml;
 
 namespace AtomicRegistry
 {
@@ -14,10 +15,20 @@ namespace AtomicRegistry
         {
             var builder = WebApplication.CreateBuilder(args);
 
+            Console.WriteLine($"Args: {string.Join(",", args)}");
+            Console.WriteLine($"Used url: {builder.WebHost.GetSetting("urls")}");
+
+            var instanceArg = args.FirstOrDefault(x => x.StartsWith("--instance="));
+            var instanceName = instanceArg != null ? instanceArg.Split('=')[1] : "default";
+
             builder.Services.AddControllers();
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen();
-            builder.SetupStorage();
+            builder.SetupStorage(instanceName);
+            builder.Services.AddScoped(x => new InstanceName(instanceName));
+
+            //todo: if not development, instance name comes from settings
+
             var app = builder.Build();
 
             if (app.Environment.IsDevelopment())
@@ -32,15 +43,16 @@ namespace AtomicRegistry
             app.Run();
         }
 
-        private static void SetupStorage(this WebApplicationBuilder builder)
+        private static void SetupStorage(this WebApplicationBuilder builder, string instanceName)
         {
             var provider = new Vostok.Configuration.ConfigurationProvider();
-            provider.SetupSourceFor<StorageSettings>(new JsonFileSource("settings\\storageSettings.json"));
+            provider.SetupSourceFor<StorageSettings>(new YamlFileSource("settings\\storageSettings.yaml"));
             var settings = provider.Get<StorageSettings>();
             builder.Services.AddScoped(x => settings);
-            if (settings?.FilePath == null)
+            if (settings == null)
                 throw new Exception("Could not retrieve storage settings");
-            DirectoryHelper.EnsurePathDirectoriesExist(settings.FilePath);
+
+            DirectoryHelper.EnsurePathDirectoriesExist(settings.InstanceNameFilePath[instanceName]);
         }
     }
 }

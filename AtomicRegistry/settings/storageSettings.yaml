@@ -1,0 +1,5 @@
+InstanceNameFilePath:
+    default: "LocalRuns\\default"
+    Instance1: "LocalRuns\\Instance1"
+    Instance2: "LocalRuns\\Instance2"
+    Instance3: "LocalRuns\\Instance3"
