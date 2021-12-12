@@ -1,6 +1,10 @@
+using System;
+using AtomicRegistry.Configuration;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Vostok.Configuration;
+using Vostok.Configuration.Sources.Json;
 
 namespace AtomicRegistry
 {
@@ -10,14 +14,12 @@ namespace AtomicRegistry
         {
             var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
             builder.Services.AddControllers();
-// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen();
+            builder.SetupStorage();
             var app = builder.Build();
 
-// Configure the HTTP request pipeline.
             if (app.Environment.IsDevelopment())
             {
                 app.UseSwagger();
@@ -28,6 +30,17 @@ namespace AtomicRegistry
             app.UseAuthorization();
             app.MapControllers();
             app.Run();
+        }
+
+        private static void SetupStorage(this WebApplicationBuilder builder)
+        {
+            var provider = new Vostok.Configuration.ConfigurationProvider();
+            provider.SetupSourceFor<StorageSettings>(new JsonFileSource("settings\\storageSettings.json"));
+            var settings = provider.Get<StorageSettings>();
+            builder.Services.AddScoped(x => settings);
+            if (settings?.FilePath == null)
+                throw new Exception("Could not retrieve storage settings");
+            DirectoryHelper.EnsurePathDirectoriesExist(settings.FilePath);
         }
     }
 }
