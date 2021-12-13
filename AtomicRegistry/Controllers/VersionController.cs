@@ -10,7 +10,7 @@ namespace AtomicRegistry.Controllers
         [HttpGet]
         public string Get()
         {
-            return ((AssemblyInformationalVersionAttribute) Assembly.GetExecutingAssembly().GetCustomAttribute(
+            return ((AssemblyInformationalVersionAttribute)Assembly.GetExecutingAssembly().GetCustomAttribute(
                 typeof(AssemblyInformationalVersionAttribute))!).InformationalVersion;
         }
     }

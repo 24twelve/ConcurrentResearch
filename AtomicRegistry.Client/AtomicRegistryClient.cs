@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
+﻿using System.Text;
 using Vostok.Clusterclient.Core;
 using Vostok.Clusterclient.Core.Model;
 using Vostok.Clusterclient.Core.Retry;
@@ -18,7 +13,7 @@ namespace AtomicRegistry.Client
     public class AtomicRegistryClient
     {
         private readonly IClusterClient client;
-        private readonly object locker = new object();
+        private readonly object locker = new();
         private int timestamp = 0;
 
         public AtomicRegistryClient(IClusterProvider nodeClusterProvider, ILog log)
@@ -27,16 +22,20 @@ namespace AtomicRegistry.Client
             {
                 configuration.ClusterProvider = nodeClusterProvider;
                 configuration.Transport = new UniversalTransport(log);
-                configuration.ConnectionAttempts = 9999;
-                configuration.RetryStrategy = new ImmediateRetryStrategy(int.MaxValue);
+                configuration.ConnectionAttempts = 1;
+                configuration.RetryStrategy = new ImmediateRetryStrategy(999);
                 configuration.DefaultRequestStrategy = new AllReplica200RequestStrategy();
-                configuration.DefaultTimeout = TimeSpan.FromSeconds(15);
+                configuration.DefaultTimeout = TimeSpan.FromSeconds(60);
+                configuration.Logging.LogReplicaRequests = true;
+                configuration.Logging.LogReplicaResults = true;
+                configuration.Logging.LogRequestDetails = true;
+                configuration.Logging.LogResultDetails = true;
             });
         }
 
         public void Set(string value)
         {
-            var request = Request.Post(new Uri("set", UriKind.Relative))
+            var request = Request.Post(new Uri("api", UriKind.Relative))
                 .WithAdditionalQueryParameter("value", value);
             lock (locker)
             {
@@ -49,7 +48,7 @@ namespace AtomicRegistry.Client
 
         public async Task<string> Get()
         {
-            var request = Request.Get(new Uri("", UriKind.Relative));
+            var request = Request.Get(new Uri("api", UriKind.Relative));
             var result = await client.SendAsync(request);
             if (result.Response.Code != ResponseCode.Ok)
                 throw new Exception("Get result not 200");

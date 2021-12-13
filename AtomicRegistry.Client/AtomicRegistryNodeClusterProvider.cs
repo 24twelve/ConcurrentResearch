@@ -1,7 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using Vostok.Clusterclient.Core.Topology;
+﻿using Vostok.Clusterclient.Core.Topology;
 
 namespace AtomicRegistry.Client
 {
