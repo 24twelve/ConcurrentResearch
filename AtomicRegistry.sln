@@ -2,6 +2,8 @@
 Microsoft Visual Studio Solution File, Format Version 12.00
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AtomicRegistry", "AtomicRegistry\AtomicRegistry.csproj", "{274BE6F3-AA9B-49EC-B80E-DEA01742EB3F}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AtomicRegistry.Client", "AtomicRegistry.Client\AtomicRegistry.Client.csproj", "{8D4F2010-5596-4CB7-A157-105D544B80D4}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -12,5 +14,9 @@ Global
 		{274BE6F3-AA9B-49EC-B80E-DEA01742EB3F}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{274BE6F3-AA9B-49EC-B80E-DEA01742EB3F}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{274BE6F3-AA9B-49EC-B80E-DEA01742EB3F}.Release|Any CPU.Build.0 = Release|Any CPU
+		{8D4F2010-5596-4CB7-A157-105D544B80D4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{8D4F2010-5596-4CB7-A157-105D544B80D4}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{8D4F2010-5596-4CB7-A157-105D544B80D4}.Release|Any CPU.Build.0 = Release|Any CPU
+		{8D4F2010-5596-4CB7-A157-105D544B80D4}.Debug|Any CPU.Build.0 = Debug|Any CPU
 	EndGlobalSection
 EndGlobal

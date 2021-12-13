@@ -4,7 +4,6 @@ using AtomicRegistry.Configuration;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using Newtonsoft.Json;
 using Vostok.Configuration.Sources.Yaml;
 
 namespace AtomicRegistry
