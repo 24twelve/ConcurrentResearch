@@ -28,5 +28,11 @@ namespace AtomicRegistry.Controllers
         {
             System.IO.File.WriteAllText(StorageFilePath, value.ToJson());
         }
+
+        [HttpDelete("drop")]
+        public void Drop()
+        {
+            System.IO.File.WriteAllText(StorageFilePath, string.Empty);
+        }
     }
 }

@@ -43,7 +43,7 @@ namespace AtomicRegistry.Client
             {
                 var result = client.SendAsync(request).GetAwaiter().GetResult();
                 if (result.Response.Code != ResponseCode.Ok)
-                    throw new Exception("Get result not 200");
+                    throw new Exception("Post result not 200");
                 timestamp++;
             }
         }
@@ -56,6 +56,15 @@ namespace AtomicRegistry.Client
                 throw new Exception("Get result not 200");
 
             return result.Response.Content.ToString().FromJson<ValueDto>()?.Value;
+        }
+
+        //todo: предположим что атмомарность этой операции в задачу не входит :)
+        public async Task Drop()
+        {
+            var request = Request.Delete(new Uri("api/drop", UriKind.Relative));
+            var result = await client.SendAsync(request);
+            if (result.Response.Code != ResponseCode.Ok)
+                throw new Exception("Get result not 200");
         }
     }
 }

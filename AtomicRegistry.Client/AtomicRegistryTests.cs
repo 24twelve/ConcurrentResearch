@@ -12,13 +12,14 @@ namespace AtomicRegistry.Client
         private AtomicRegistryClient client = null!;
 
         [SetUp]
-        public void SetUp()
+        public async Task SetUp()
         {
             var consoleLog = new ConsoleLog();
             var fileLogSettings = new FileLogSettings { FilePath = "LocalRuns\\test-log.txt" };
             var fileLog = new FileLog(fileLogSettings);
             client = new AtomicRegistryClient(new AtomicRegistryNodeClusterProvider(),
                 new CompositeLog(consoleLog, fileLog));
+            await client.Drop();
         }
 
         [Test]
