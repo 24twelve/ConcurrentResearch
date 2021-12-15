@@ -13,7 +13,7 @@ namespace AtomicRegistry.Client
         public async Task TestSetGet()
         {
             var consoleLog = new ConsoleLog();
-            var fileLogSettings = new FileLogSettings { FilePath = "LocalRuns\\test-log.txt" };
+            var fileLogSettings = new FileLogSettings { FilePath = "LocalRuns\\test-log.txt"};
             var fileLog = new FileLog(fileLogSettings);
             var client = new AtomicRegistryClient(new AtomicRegistryNodeClusterProvider(),
                 new CompositeLog(consoleLog, fileLog));

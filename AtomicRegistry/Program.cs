@@ -24,7 +24,7 @@ namespace AtomicRegistry
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen();
             builder.SetupStorage(instanceName);
-            builder.Services.AddScoped(x => new InstanceName(instanceName));
+            builder.Services.AddScoped(_ => new InstanceName(instanceName));
 
             //todo: if not development, instance name comes from settings
 

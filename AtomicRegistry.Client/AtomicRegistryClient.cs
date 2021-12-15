@@ -35,7 +35,7 @@ namespace AtomicRegistry.Client
 
         public void Set(string value)
         {
-            var request = Request.Post(new Uri("api", UriKind.Relative))
+            var request = Request.Post(new Uri($"api/set", UriKind.Relative))
                 .WithAdditionalQueryParameter("value", value);
             lock (locker)
             {
@@ -48,19 +48,17 @@ namespace AtomicRegistry.Client
 
         public async Task<string> Get()
         {
-            var request = Request.Get(new Uri("api", UriKind.Relative));
+            var request = Request.Get(new Uri("api/", UriKind.Relative));
             var result = await client.SendAsync(request);
             if (result.Response.Code != ResponseCode.Ok)
                 throw new Exception("Get result not 200");
 
             var response = result.Response;
-            var body = new byte[response.Stream.Length];
-            await response.Stream.ReadAsync(body);
-
-            return Encoding.UTF8.GetString(body);
+            return response.Content.ToString();
         }
     }
 
+    //todo: rebuild for quorums
     public class AllReplica200RequestStrategy : IRequestStrategy
     {
         public async Task SendAsync(Request request, RequestParameters parameters, IRequestSender sender,

@@ -5,7 +5,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace AtomicRegistry.Controllers
 {
     [ApiController]
-    [Route("/api/[controller]")]
+    [Route("/api")]
     public class AtomicRegistryController : ControllerBase
     {
         public AtomicRegistryController(StorageSettings settings, InstanceName instanceName)
@@ -21,7 +21,7 @@ namespace AtomicRegistry.Controllers
             return System.IO.File.ReadAllText(StorageFilePath);
         }
 
-        [HttpPost]
+        [HttpPost("set")]
         public void Set(string value)
         {
             System.IO.File.WriteAllText(StorageFilePath, value);

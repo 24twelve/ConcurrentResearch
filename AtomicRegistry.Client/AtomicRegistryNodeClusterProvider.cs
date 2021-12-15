@@ -8,9 +8,9 @@ namespace AtomicRegistry.Client
         {
             return new[]
             {
-                new Uri("http://localhost:5001"),
-                new Uri("http://localhost:5002"),
-                new Uri("http://localhost:5003"),
+                new Uri("https://localhost:6001"),
+                new Uri("https://localhost:6002"),
+                new Uri("https://localhost:6003"),
             }.ToList();
         }
     }
