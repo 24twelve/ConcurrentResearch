@@ -1,9 +1,7 @@
-﻿using System.Text;
+﻿using AtomicRegistry.Common;
 using Vostok.Clusterclient.Core;
 using Vostok.Clusterclient.Core.Model;
 using Vostok.Clusterclient.Core.Retry;
-using Vostok.Clusterclient.Core.Sending;
-using Vostok.Clusterclient.Core.Strategies;
 using Vostok.Clusterclient.Core.Topology;
 using Vostok.Clusterclient.Transport;
 using Vostok.Logging.Abstractions;
@@ -12,6 +10,7 @@ namespace AtomicRegistry.Client
 {
     public class AtomicRegistryClient
     {
+        private const int QuorumReplicaCount = 2;
         private readonly IClusterClient client;
         private readonly object locker = new();
         private int timestamp = 0;
@@ -24,7 +23,8 @@ namespace AtomicRegistry.Client
                 configuration.Transport = new UniversalTransport(log);
                 configuration.ConnectionAttempts = 1;
                 configuration.RetryStrategy = new ImmediateRetryStrategy(999);
-                configuration.DefaultRequestStrategy = new AllReplica200RequestStrategy();
+                //todo: rebuild for quorums
+                configuration.DefaultRequestStrategy = new QuorumStrategy(QuorumReplicaCount);
                 configuration.DefaultTimeout = TimeSpan.FromSeconds(60);
                 configuration.Logging.LogReplicaRequests = true;
                 configuration.Logging.LogReplicaResults = true;
@@ -35,8 +35,10 @@ namespace AtomicRegistry.Client
 
         public void Set(string value)
         {
+            var content = new ValueDto(timestamp, value).ToJson();
             var request = Request.Post(new Uri($"api/set", UriKind.Relative))
-                .WithAdditionalQueryParameter("value", value);
+                .WithContent(content)
+                .WithContentTypeHeader("application/json");
             lock (locker)
             {
                 var result = client.SendAsync(request).GetAwaiter().GetResult();
@@ -46,38 +48,14 @@ namespace AtomicRegistry.Client
             }
         }
 
-        public async Task<string> Get()
+        public async Task<string?> Get()
         {
             var request = Request.Get(new Uri("api/", UriKind.Relative));
             var result = await client.SendAsync(request);
             if (result.Response.Code != ResponseCode.Ok)
                 throw new Exception("Get result not 200");
 
-            var response = result.Response;
-            return response.Content.ToString();
-        }
-    }
-
-    //todo: rebuild for quorums
-    public class AllReplica200RequestStrategy : IRequestStrategy
-    {
-        public async Task SendAsync(Request request, RequestParameters parameters, IRequestSender sender,
-            IRequestTimeBudget budget,
-            IEnumerable<Uri> replicas, int replicasCount, CancellationToken cancellationToken)
-        {
-            var tasks = replicas.Select(async replica =>
-            {
-                ResponseCode replicaResponseCode = 0;
-                while (replicaResponseCode != ResponseCode.Ok)
-                {
-                    var replicaResult =
-                        await sender.SendToReplicaAsync(replica, request, null, budget.Remaining, cancellationToken);
-
-                    replicaResponseCode = replicaResult.Response.Code;
-                    await Task.Delay(50, cancellationToken);
-                }
-            }).ToArray();
-            await Task.WhenAll(tasks);
+            return result.Response.Content.ToString().FromJson<ValueDto>()?.Value;
         }
     }
 }

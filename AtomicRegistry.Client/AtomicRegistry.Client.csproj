@@ -16,4 +16,8 @@
         <PackageReference Include="Vostok.Logging.File" Version="1.0.19-pre000014"/>
     </ItemGroup>
 
+    <ItemGroup>
+        <ProjectReference Include="..\AtomicRegistry\AtomicRegistry.csproj"/>
+    </ItemGroup>
+
 </Project>

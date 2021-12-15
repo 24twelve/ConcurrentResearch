@@ -1,4 +1,6 @@
 ﻿using System;
+using AtomicRegistry.Client;
+using AtomicRegistry.Common;
 using AtomicRegistry.Configuration;
 using Microsoft.AspNetCore.Mvc;
 
@@ -22,9 +24,9 @@ namespace AtomicRegistry.Controllers
         }
 
         [HttpPost("set")]
-        public void Set(string value)
+        public void Set([FromBody] ValueDto value)
         {
-            System.IO.File.WriteAllText(StorageFilePath, value);
+            System.IO.File.WriteAllText(StorageFilePath, value.ToJson());
         }
     }
 }
