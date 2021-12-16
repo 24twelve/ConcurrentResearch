@@ -1,6 +1,4 @@
-﻿using System.IO;
-
-namespace AtomicRegistry.Configuration
+﻿namespace AtomicRegistry.Configuration
 {
     public static class DirectoryHelper
     {
@@ -10,7 +8,7 @@ namespace AtomicRegistry.Configuration
                 return;
 
             var directoryPath = Directory.GetParent(filePath)!.FullName;
-            Directory.CreateDirectory(directoryPath!);
+            Directory.CreateDirectory(directoryPath);
         }
     }
 }

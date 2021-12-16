@@ -6,12 +6,17 @@ namespace AtomicRegistry.Client
     {
         public IList<Uri> GetCluster()
         {
-            return new[]
+            return InstancesTopology().Values.ToList();
+        }
+
+        public static Dictionary<string, Uri> InstancesTopology()
+        {
+            return new Dictionary<string, Uri>()
             {
-                new Uri("https://localhost:6001"),
-                new Uri("https://localhost:6002"),
-                new Uri("https://localhost:6003"),
-            }.ToList();
+                ["Instance1"] = new("https://localhost:6001"),
+                ["Instance2"] = new("https://localhost:6002"),
+                ["Instance3"] = new("https://localhost:6003"),
+            };
         }
     }
 }

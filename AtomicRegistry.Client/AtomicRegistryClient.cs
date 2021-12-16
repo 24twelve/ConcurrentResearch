@@ -1,4 +1,5 @@
 ﻿using AtomicRegistry.Common;
+using AtomicRegistry.Dto;
 using Vostok.Clusterclient.Core;
 using Vostok.Clusterclient.Core.Model;
 using Vostok.Clusterclient.Core.Retry;
@@ -13,7 +14,7 @@ namespace AtomicRegistry.Client
         private const int QuorumReplicaCount = 2;
         private readonly IClusterClient client;
         private readonly object locker = new();
-        private int timestamp = 0;
+        private int timestamp;
 
         public AtomicRegistryClient(IClusterProvider nodeClusterProvider, ILog log)
         {
@@ -33,7 +34,7 @@ namespace AtomicRegistry.Client
             });
         }
 
-        public void Set(string value)
+        public async Task Set(string value)
         {
             var content = new ValueDto(timestamp, value).ToJson();
             var request = Request.Post(new Uri($"api/set", UriKind.Relative))
@@ -43,28 +44,58 @@ namespace AtomicRegistry.Client
             {
                 var result = client.SendAsync(request).GetAwaiter().GetResult();
                 if (result.Response.Code != ResponseCode.Ok)
-                    throw new Exception("Post result not 200");
+                    throw new Exception($"Post result not 200. {result.Status}");
                 timestamp++;
             }
         }
 
+        //todo: some clever way for exception throwing
         public async Task<string?> Get()
         {
             var request = Request.Get(new Uri("api/", UriKind.Relative));
             var result = await client.SendAsync(request);
             if (result.Response.Code != ResponseCode.Ok)
-                throw new Exception("Get result not 200");
+                throw new Exception($"Get result not 200. {result.Status}");
 
             return result.Response.Content.ToString().FromJson<ValueDto>()?.Value;
         }
 
-        //todo: предположим что атмомарность этой операции в задачу не входит :)
         public async Task Drop()
         {
             var request = Request.Delete(new Uri("api/drop", UriKind.Relative));
-            var result = await client.SendAsync(request);
+            var requestParameters = new RequestParameters()
+                .WithStrategy(
+                    new AllReplicas200Strategy());
+            var result = await client.SendAsync(request, requestParameters);
+
             if (result.Response.Code != ResponseCode.Ok)
                 throw new Exception("Get result not 200");
+        }
+
+        public async Task InduceFault(string instanceName, FaultSettingsDto faultSettingsDto)
+        {
+            var request = Request.Post(new Uri($"api/faults/push", UriKind.Relative))
+                .WithContent(faultSettingsDto.ToJson())
+                .WithContentTypeHeader("application/json");
+            var requestParameters = new RequestParameters()
+                .WithStrategy(
+                    new SelectedReplicaStrategy(AtomicRegistryNodeClusterProvider.InstancesTopology()[instanceName]));
+            var result = await client.SendAsync(request, requestParameters);
+            if (result.Response.Code != ResponseCode.Ok)
+                throw new Exception("Post result not 200");
+        }
+
+        public async Task ResetFault(string instanceName)
+        {
+            var request = Request.Post(new Uri($"api/faults/push", UriKind.Relative))
+                .WithContent(FaultSettingsDto.EverythingOk.ToJson())
+                .WithContentTypeHeader("application/json");
+            var requestParameters = new RequestParameters()
+                .WithStrategy(
+                    new SelectedReplicaStrategy(AtomicRegistryNodeClusterProvider.InstancesTopology()[instanceName]));
+            var result = await client.SendAsync(request, requestParameters);
+            if (result.Response.Code != ResponseCode.Ok)
+                throw new Exception("Post result not 200");
         }
     }
 }

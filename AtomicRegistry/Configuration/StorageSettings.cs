@@ -1,9 +1,7 @@
-﻿using System.Collections.Generic;
-
-namespace AtomicRegistry.Configuration
+﻿namespace AtomicRegistry.Configuration
 {
     public class StorageSettings
     {
-        public Dictionary<string, string> InstanceNameFilePath { get; } = new Dictionary<string, string>();
+        public IReadOnlyDictionary<string, string> InstanceNameFilePath { get; } = new Dictionary<string, string>();
     }
 }
