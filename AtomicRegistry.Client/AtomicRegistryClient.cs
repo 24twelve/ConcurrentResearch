@@ -36,15 +36,9 @@ namespace AtomicRegistry.Client
 
         public Task Set(string value)
         {
-            var content = new ValueDto(timestamp, value).ToJson();
-            var request = Request.Post(new Uri($"api/set", UriKind.Relative))
-                .WithContent(content)
-                .WithContentTypeHeader("application/json");
             lock (locker)
             {
-                var result = client.SendAsync(request).GetAwaiter().GetResult();
-                if (result.Response.Code != ResponseCode.Ok)
-                    throw new Exception($"Post result not 200. {result.Status}");
+                SetInternal(new ValueDto(timestamp, value), null);
                 timestamp++;
             }
 
@@ -61,12 +55,18 @@ namespace AtomicRegistry.Client
 
             var clusterResults = result.ReplicaResults
                 .Where(x => x.Response.Code == ResponseCode.Ok)
-                .Select(x => x.Response.Content.ToString().FromJson<ValueDto>())
-                .OrderByDescending(x => x?.Version ?? 0)
+                .Select(x => (x.Replica, x.Response.Content.ToString().FromJson<ValueDto>() ?? new ValueDto(-1, null)))
+                .OrderByDescending(x => x.Item2.Version)
                 .ToArray();
 
+            var laggingReplicas = clusterResults
+                .Where(x => x.Item2.Version != clusterResults[0].Item2.Version)
+                .ToArray();
 
-            return clusterResults[0]?.Value;
+            foreach (var valueReplica in laggingReplicas)
+                SetInternal(valueReplica.Item2, valueReplica.Replica);
+
+            return clusterResults[0].Item2.Value;
         }
 
         public async Task Drop()
@@ -105,6 +105,21 @@ namespace AtomicRegistry.Client
             var result = await client.SendAsync(request, requestParameters);
             if (result.Response.Code != ResponseCode.Ok)
                 throw new Exception("Post result not 200");
+        }
+
+        private void SetInternal(ValueDto value, Uri? replica)
+        {
+            var content = value.ToJson();
+            var request = Request.Post(new Uri($"api/set", UriKind.Relative))
+                .WithContent(content)
+                .WithContentTypeHeader("application/json");
+            var requestParameters = new RequestParameters();
+            if (replica != null)
+                requestParameters = requestParameters.WithStrategy(new SelectedReplicaStrategy(replica));
+
+            var result = client.SendAsync(request, requestParameters).GetAwaiter().GetResult();
+            if (result.Response.Code != ResponseCode.Ok)
+                throw new Exception($"Set result not 200. {result.Status}");
         }
     }
 }

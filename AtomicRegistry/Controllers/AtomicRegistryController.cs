@@ -2,6 +2,7 @@
 using AtomicRegistry.Configuration;
 using AtomicRegistry.Dto;
 using Microsoft.AspNetCore.Mvc;
+using Vostok.Clusterclient.Core.Model;
 
 namespace AtomicRegistry.Controllers
 {
@@ -9,45 +10,42 @@ namespace AtomicRegistry.Controllers
     [Route("/api")]
     public class AtomicRegistryController : ControllerBase
     {
+        private readonly Database database;
         private readonly FaultSettingsObserver faultSettingsObserver;
 
         public AtomicRegistryController(
-            StorageSettings settings,
-            InstanceName instanceName,
-            FaultSettingsObserver faultSettingsObserver)
+            FaultSettingsObserver faultSettingsObserver, Database database)
         {
             this.faultSettingsObserver = faultSettingsObserver;
-            StorageFilePath = settings.InstanceNameFilePath[instanceName.Value] ?? throw new ArgumentNullException();
+            this.database = database;
         }
 
-        private string StorageFilePath { get; }
 
         [HttpGet]
-        public async Task<string> Get()
+        public string Get()
         {
-            ImitateFaults();
+            while (faultSettingsObserver.CurrentSettings.IsGetFrozen) Thread.Sleep(5);
 
-            return await System.IO.File.ReadAllTextAsync(StorageFilePath);
+            return database.Read();
         }
 
         [HttpPost("set")]
         public void Set([FromBody] ValueDto value)
         {
-            ImitateFaults();
+            while (faultSettingsObserver.CurrentSettings.IsSetFrozen) Thread.Sleep(5);
+            if (faultSettingsObserver.CurrentSettings.NextSetFrozen)
+            {
+                faultSettingsObserver.CurrentSettings.NextSetFrozen = false;
+                while (!faultSettingsObserver.CurrentSettings.ShouldUnfreezeFrozenSets) Thread.Sleep(5);
+            }
 
-            System.IO.File.WriteAllText(StorageFilePath, value.ToJson());
+            database.Write(value.ToJson());
         }
 
         [HttpDelete("drop")]
         public void Drop()
         {
-            System.IO.File.WriteAllText(StorageFilePath, string.Empty);
-        }
-
-        private void ImitateFaults()
-        {
-            if (faultSettingsObserver.CurrentSettings.IsDown) throw new Exception("Replica is down");
-            while (faultSettingsObserver.CurrentSettings.IsFrozen) Thread.Sleep(5);
+            database.Write(string.Empty);
         }
     }
 }

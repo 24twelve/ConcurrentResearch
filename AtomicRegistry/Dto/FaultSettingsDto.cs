@@ -2,21 +2,27 @@
 
 namespace AtomicRegistry.Dto;
 
+//todo: cool structure for these commands
 public class FaultSettingsDto
 {
-    public static readonly FaultSettingsDto EverythingOk = new(false, false);
-    public static readonly FaultSettingsDto Frozen = new(true, false);
-    public static readonly FaultSettingsDto Down = new(false, true);
+    public static readonly FaultSettingsDto EverythingOk = new(false, false, false, true);
+    public static readonly FaultSettingsDto AllFrozen = new(true, true, false, false);
+    public static readonly FaultSettingsDto GetFrozen = new(true, false, false, false);
+    public static readonly FaultSettingsDto SetFrozen = new(false, true, false, false);
+    public static readonly FaultSettingsDto OneSetFrozen = new(false, false, true, false);
+    public static readonly FaultSettingsDto UnfreezeFrozenSets = new(false, false, false, true);
 
     [JsonConstructor]
-    public FaultSettingsDto(bool isFrozen, bool isDown)
+    public FaultSettingsDto(bool isGetFrozen, bool isSetFrozen, bool nextSetFrozen, bool shouldUnfreezeFrozenSets)
     {
-        IsFrozen = isFrozen;
-        IsDown = isDown;
+        IsGetFrozen = isGetFrozen;
+        IsSetFrozen = isSetFrozen;
+        NextSetFrozen = nextSetFrozen;
+        ShouldUnfreezeFrozenSets = shouldUnfreezeFrozenSets;
     }
 
-    public bool IsFrozen { get; }
-
-    public bool
-        IsDown { get; } //todo: кажется это ничем не отличается от IsFrozen для ситуации с бесконечными ретраями?
+    public bool IsGetFrozen { get; }
+    public bool IsSetFrozen { get; }
+    public bool NextSetFrozen { get; set; }
+    public bool ShouldUnfreezeFrozenSets { get; }
 }

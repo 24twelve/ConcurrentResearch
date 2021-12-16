@@ -1,4 +1,5 @@
 using AtomicRegistry.Configuration;
+using AtomicRegistry.Controllers;
 using AtomicRegistry.Dto;
 using Vostok.Configuration.Sources.Yaml;
 
@@ -21,7 +22,6 @@ namespace AtomicRegistry
             builder.Services.AddSwaggerGen();
             builder.SetupStorage(instanceName);
             builder.SetupFaultSettings();
-            builder.Services.AddScoped(_ => new InstanceName(instanceName));
 
 
             //todo: if not development, instance name comes from settings
@@ -45,11 +45,13 @@ namespace AtomicRegistry
             var provider = new Vostok.Configuration.ConfigurationProvider();
             provider.SetupSourceFor<StorageSettings>(new YamlFileSource("settings\\storageSettings.yaml"));
             var settings = provider.Get<StorageSettings>();
-            builder.Services.AddScoped(_ => settings);
             if (settings == null)
                 throw new Exception("Could not retrieve storage settings");
-
+            builder.Services.AddSingleton(_ => settings);
             DirectoryHelper.EnsurePathDirectoriesExist(settings.InstanceNameFilePath[instanceName]);
+
+            var database = new Database(settings, instanceName);
+            builder.Services.AddSingleton(database);
         }
 
         private static void SetupFaultSettings(this WebApplicationBuilder builder)

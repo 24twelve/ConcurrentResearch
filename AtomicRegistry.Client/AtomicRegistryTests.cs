@@ -14,14 +14,13 @@ namespace AtomicRegistry.Client
         private AtomicRegistryClient client = null!;
 
         [OneTimeSetUp]
-        public async Task OneTimeSetUp()
+        public void OneTimeSetUp()
         {
             var consoleLog = new ConsoleLog();
             var fileLogSettings = new FileLogSettings { FilePath = "LocalRuns\\test-log.txt" };
             var fileLog = new FileLog(fileLogSettings);
             client = new AtomicRegistryClient(new AtomicRegistryNodeClusterProvider(),
                 new CompositeLog(consoleLog, fileLog));
-           await client.Drop();
         }
 
         [SetUp]
@@ -29,6 +28,7 @@ namespace AtomicRegistry.Client
         {
             foreach (var replica in AtomicRegistryNodeClusterProvider.InstancesTopology().Keys)
                 await client.ResetFault(replica);
+            await client.Drop();
         }
 
         [Test]
@@ -56,7 +56,7 @@ namespace AtomicRegistry.Client
         [Test]
         public async Task InduceFreeze_ReplicaFrozen_ClusterIsWorking()
         {
-            var freezeSettings = FaultSettingsDto.Frozen;
+            var freezeSettings = FaultSettingsDto.AllFrozen;
             await client.InduceFault("Instance1", freezeSettings);
 
             var value = $"test-yeah-{Guid.NewGuid()}";
@@ -66,21 +66,9 @@ namespace AtomicRegistry.Client
         }
 
         [Test]
-        public async Task InduceDown_ReplicaDown_ClusterIsWorking()
+        public async Task TwoReplicasFrozen_ClusterIsDead_OneReplicaUp_ClusterAlive()
         {
-            var freezeSettings = FaultSettingsDto.Down;
-            await client.InduceFault("Instance1", freezeSettings);
-
-            var value = $"test-yeah-{Guid.NewGuid()}";
-            await client.Set(value);
-            var result = await client.Get();
-            result.Should().Be(value);
-        }
-
-        [Test]
-        public async Task TwoReplicasDown_ClusterIsDead_OneReplicaUp_ClusterAlive()
-        {
-            var freezeSettings = FaultSettingsDto.Down;
+            var freezeSettings = FaultSettingsDto.AllFrozen;
             await client.InduceFault("Instance1", freezeSettings);
             await client.InduceFault("Instance2", freezeSettings);
 
@@ -103,7 +91,7 @@ namespace AtomicRegistry.Client
             var value3 = $"value3-{Guid.NewGuid()}";
             var value4 = $"value4-{Guid.NewGuid()}";
 
-            var freezeSettings = FaultSettingsDto.Frozen;
+            var freezeSettings = FaultSettingsDto.AllFrozen;
             await client.InduceFault("Instance1", freezeSettings);
 
             await client.Set(value1);
@@ -119,5 +107,71 @@ namespace AtomicRegistry.Client
             var result2 = await client.Get();
             result2.Should().Be(value4);
         }
+
+        [Test]
+        public async Task MultipleReads_ReceiveSameResults()
+        {
+            var value1 = $"value1-{Guid.NewGuid()}";
+            await client.Set(value1);
+            for (var i = 0; i < 100; i++)
+            {
+                var result1 = await client.Get();
+                result1.Should().Be(value1);
+            }
+        }
+
+        [Test]
+        public async Task ParallelReads_ReceiveSameResults()
+        {
+            var value1 = $"value1-{Guid.NewGuid()}";
+            await client.Set(value1);
+
+            Action[] tasks = Enumerable.Repeat(() =>
+            {
+                var result1 = client.Get().GetAwaiter().GetResult();
+                result1.Should().Be(value1);
+            }, 50).ToArray();
+
+            var parallelOptions = new ParallelOptions { MaxDegreeOfParallelism = 10 };
+
+            Parallel.Invoke(parallelOptions, tasks);
+        }
+
+        [Test]
+        public async Task SetIsTakingTooLong_GetRequestsHelpItRestore()
+        {
+            //todo: reject old writes on replicas
+            //todo: write on older write on quorum replica
+            //todo: fix test so it always sets up right
+
+            var value1 = $"value1-{Guid.NewGuid()}";
+
+            Console.WriteLine($"This test value is {value1}");
+
+            await client.InduceFault("Instance1", FaultSettingsDto.OneSetFrozen);
+            await client.InduceFault("Instance3", FaultSettingsDto.OneSetFrozen);
+
+            var setTask1 = Task.Run(() => client.Set(value1));
+            Thread.Sleep(TimeSpan.FromSeconds(1));
+            setTask1.IsCompleted.Should().BeFalse();
+
+            string? currentGetResult = null;
+            while (currentGetResult != value1) currentGetResult = await client.Get();
+
+
+            Action[] tasks = Enumerable.Repeat(() =>
+            {
+                var result1 = client.Get().GetAwaiter().GetResult();
+                result1.Should().Be(value1);
+            }, 100).ToArray();
+
+            var parallelOptions = new ParallelOptions { MaxDegreeOfParallelism = 2 };
+            Parallel.Invoke(parallelOptions, tasks);
+
+            //unfreeze sets
+            //await setTask;
+        }
+
+        //todo: test with three versions of value
     }
 }
