@@ -16,5 +16,7 @@ public class FaultSettingsDto
     }
 
     public bool IsFrozen { get; }
-    public bool IsDown { get; }
+
+    public bool
+        IsDown { get; } //todo: кажется это ничем не отличается от IsFrozen для ситуации с бесконечными ретраями?
 }

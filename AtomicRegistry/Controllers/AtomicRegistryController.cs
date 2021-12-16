@@ -11,7 +11,6 @@ namespace AtomicRegistry.Controllers
     {
         private readonly FaultSettingsObserver faultSettingsObserver;
 
-
         public AtomicRegistryController(
             StorageSettings settings,
             InstanceName instanceName,
@@ -24,19 +23,17 @@ namespace AtomicRegistry.Controllers
         private string StorageFilePath { get; }
 
         [HttpGet]
-        public string Get()
+        public async Task<string> Get()
         {
-            if (faultSettingsObserver.CurrentSettings.IsDown) throw new Exception("Replica is down");
-            while (faultSettingsObserver.CurrentSettings.IsFrozen) Thread.Sleep(5);
+            ImitateFaults();
 
-            return System.IO.File.ReadAllText(StorageFilePath);
+            return await System.IO.File.ReadAllTextAsync(StorageFilePath);
         }
 
         [HttpPost("set")]
         public void Set([FromBody] ValueDto value)
         {
-            if (faultSettingsObserver.CurrentSettings.IsDown) throw new Exception("Replica is down");
-            while (faultSettingsObserver.CurrentSettings.IsFrozen) Thread.Sleep(5);
+            ImitateFaults();
 
             System.IO.File.WriteAllText(StorageFilePath, value.ToJson());
         }
@@ -45,6 +42,12 @@ namespace AtomicRegistry.Controllers
         public void Drop()
         {
             System.IO.File.WriteAllText(StorageFilePath, string.Empty);
+        }
+
+        private void ImitateFaults()
+        {
+            if (faultSettingsObserver.CurrentSettings.IsDown) throw new Exception("Replica is down");
+            while (faultSettingsObserver.CurrentSettings.IsFrozen) Thread.Sleep(5);
         }
     }
 }

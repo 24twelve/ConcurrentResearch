@@ -26,7 +26,7 @@ namespace AtomicRegistry.Client
                 configuration.RetryStrategy = new ImmediateRetryStrategy(999);
                 //todo: rebuild for quorums
                 configuration.DefaultRequestStrategy = new QuorumStrategy(QuorumReplicaCount);
-                configuration.DefaultTimeout = TimeSpan.FromSeconds(60);
+                configuration.DefaultTimeout = TimeSpan.FromMinutes(60);
                 configuration.Logging.LogReplicaRequests = true;
                 configuration.Logging.LogReplicaResults = true;
                 configuration.Logging.LogRequestDetails = true;
@@ -34,7 +34,7 @@ namespace AtomicRegistry.Client
             });
         }
 
-        public async Task Set(string value)
+        public Task Set(string value)
         {
             var content = new ValueDto(timestamp, value).ToJson();
             var request = Request.Post(new Uri($"api/set", UriKind.Relative))
@@ -47,6 +47,8 @@ namespace AtomicRegistry.Client
                     throw new Exception($"Post result not 200. {result.Status}");
                 timestamp++;
             }
+
+            return Task.CompletedTask;
         }
 
         //todo: some clever way for exception throwing
@@ -57,7 +59,14 @@ namespace AtomicRegistry.Client
             if (result.Response.Code != ResponseCode.Ok)
                 throw new Exception($"Get result not 200. {result.Status}");
 
-            return result.Response.Content.ToString().FromJson<ValueDto>()?.Value;
+            var clusterResults = result.ReplicaResults
+                .Where(x => x.Response.Code == ResponseCode.Ok)
+                .Select(x => x.Response.Content.ToString().FromJson<ValueDto>())
+                .OrderByDescending(x => x?.Version ?? 0)
+                .ToArray();
+
+
+            return clusterResults[0]?.Value;
         }
 
         public async Task Drop()
@@ -69,7 +78,7 @@ namespace AtomicRegistry.Client
             var result = await client.SendAsync(request, requestParameters);
 
             if (result.Response.Code != ResponseCode.Ok)
-                throw new Exception("Get result not 200");
+                throw new Exception("Drop result not 200");
         }
 
         public async Task InduceFault(string instanceName, FaultSettingsDto faultSettingsDto)
