@@ -1,7 +1,6 @@
-﻿namespace AtomicRegistry.Configuration
+﻿namespace AtomicRegistry.Configuration;
+
+public class StorageSettings
 {
-    public class StorageSettings
-    {
-        public IReadOnlyDictionary<string, string> InstanceNameFilePath { get; } = new Dictionary<string, string>();
-    }
+    public IReadOnlyDictionary<string, string> InstanceNameFilePath { get; } = new Dictionary<string, string>();
 }

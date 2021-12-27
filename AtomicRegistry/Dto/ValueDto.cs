@@ -10,15 +10,16 @@ public class ValueDto
     {
     }
 
-    public ValueDto(int? version, string? value)
+    public ValueDto(int? timestamp, string? value, string? clientId)
     {
-        Version = version;
+        Timestamp = timestamp;
         Value = value;
+        ClientId = clientId;
     }
 
-    public static ValueDto Empty => new(-1, null);
+    public static ValueDto Empty => new(-1, null, null);
 
-    [JsonProperty("version")] public int? Version { get; private set; }
-
+    [JsonProperty("timestamp")] public int? Timestamp { get; private set; }
+    [JsonProperty("clientId")] public string? ClientId { get; private set; }
     [JsonProperty("value")] public string? Value { get; private set; }
 }

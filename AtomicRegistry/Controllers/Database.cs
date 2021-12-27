@@ -25,6 +25,10 @@ public class Database
 
     public ValueDto Read()
     {
-        return File.ReadAllText(StorageFilePath).FromJson<ValueDto>() ?? ValueDto.Empty;
+        //todo: but why? i thought lock is not needed
+        lock (locker)
+        {
+            return File.ReadAllText(StorageFilePath).FromJson<ValueDto>() ?? ValueDto.Empty;
+        }
     }
 }

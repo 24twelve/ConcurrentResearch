@@ -2,70 +2,79 @@
 using AtomicRegistry.Configuration;
 using AtomicRegistry.Dto;
 using Microsoft.AspNetCore.Mvc;
-using Vostok.Clusterclient.Core.Model;
 using Vostok.Logging.Abstractions;
 
-namespace AtomicRegistry.Controllers
+namespace AtomicRegistry.Controllers;
+
+[ApiController]
+[Route("/api")]
+public class AtomicRegistryController : ControllerBase
 {
-    [ApiController]
-    [Route("/api")]
-    public class AtomicRegistryController : ControllerBase
+    private readonly Database database;
+    private readonly FaultSettingsObserver faultSettingsObserver;
+    private readonly FaultSettingsProvider faultSettingsProvider;
+    private readonly ILog logger;
+
+    public AtomicRegistryController(
+        FaultSettingsObserver faultSettingsObserver,
+        FaultSettingsProvider faultSettingsProvider,
+        Database database,
+        ILog logger)
     {
-        private readonly Database database;
-        private readonly FaultSettingsObserver faultSettingsObserver;
-        private readonly FaultSettingsProvider faultSettingsProvider;
-        private readonly ILog logger;
+        this.faultSettingsObserver = faultSettingsObserver;
+        this.faultSettingsProvider = faultSettingsProvider;
+        this.database = database;
+        this.logger = logger;
+    }
 
-        public AtomicRegistryController(
-            FaultSettingsObserver faultSettingsObserver,
-            FaultSettingsProvider faultSettingsProvider,
-            Database database,
-            ILog logger)
+
+    [HttpGet]
+    public IActionResult Get()
+    {
+        while (faultSettingsObserver.CurrentSettings.IsGetFrozen) Thread.Sleep(5);
+
+        return StatusCode(200, database.Read().ToJson());
+    }
+
+    [HttpPost("set")]
+    public IActionResult Set([FromBody] ValueDto value)
+    {
+        while (faultSettingsObserver.CurrentSettings.IsSetFrozen) Thread.Sleep(5);
+        if (faultSettingsObserver.CurrentSettings.NextSetFrozen)
         {
-            this.faultSettingsObserver = faultSettingsObserver;
-            this.faultSettingsProvider = faultSettingsProvider;
-            this.database = database;
-            this.logger = logger;
+            faultSettingsObserver.CurrentSettings.NextSetFrozen = false;
+            while (!faultSettingsObserver.CurrentSettings.ShouldUnfreezeFrozenSets) Thread.Sleep(5);
         }
 
-
-        [HttpGet]
-        public IActionResult Get()
+        var currentValue = database.Read();
+        var currentTimestamp = currentValue.Timestamp;
+        if (value.Timestamp == currentTimestamp && currentValue.ClientId != value.ClientId)
         {
-            while (faultSettingsObserver.CurrentSettings.IsGetFrozen) Thread.Sleep(5);
-
-            return StatusCode(200, database.Read().ToJson());
-        }
-
-        [HttpPost("set")]
-        public IActionResult Set([FromBody] ValueDto value)
-        {
-            while (faultSettingsObserver.CurrentSettings.IsSetFrozen) Thread.Sleep(5);
-            if (faultSettingsObserver.CurrentSettings.NextSetFrozen)
-            {
-                faultSettingsObserver.CurrentSettings.NextSetFrozen = false;
-                while (!faultSettingsObserver.CurrentSettings.ShouldUnfreezeFrozenSets) Thread.Sleep(5);
-            }
-
-            var currentVersion = database.Read().Version;
-            if (value.Version <= currentVersion)
-            {
-                logger.Warn($"Cannot write {value.ToJson()}; current version {currentVersion} is higher");
-                return StatusCode(409, $"Cannot write {value.ToJson()}; current version {currentVersion} is higher");
-            }
-
+            logger.Warn($"Received {value.ToJson()}; current timestamp {currentTimestamp} is equal. Replacing...");
             database.Write(value);
             return StatusCode(200);
         }
 
-        [HttpDelete("drop")]
-        public IActionResult Drop()
+        if (value.Timestamp < currentTimestamp ||
+            (value.Timestamp == currentTimestamp && currentValue.ClientId == value.ClientId))
         {
-            //todo: раскостылить на нормальную очередь запросов или какой-то механизм asp net core
-            faultSettingsProvider.Push(FaultSettingsDto.EverythingOk);
-            Thread.Sleep(TimeSpan.FromSeconds(5));
-            database.Write(ValueDto.Empty);
-            return StatusCode(200);
+            var errorMessage =
+                $"Cannot write {value.ToJson()}; current timestamp {currentValue.ToJson()} is higher or equal but from same writer";
+            logger.Warn(errorMessage);
+            return StatusCode(200, errorMessage);
         }
+
+        database.Write(value);
+        return StatusCode(200);
+    }
+
+    [HttpDelete("drop")]
+    public IActionResult Drop()
+    {
+        //todo: раскостылить на нормальную очередь запросов или какой-то механизм asp net core
+        faultSettingsProvider.Push(FaultSettingsDto.EverythingOk);
+        Thread.Sleep(TimeSpan.FromSeconds(5));
+        database.Write(ValueDto.Empty);
+        return StatusCode(200);
     }
 }

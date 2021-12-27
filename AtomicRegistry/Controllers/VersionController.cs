@@ -1,17 +1,16 @@
 ﻿using System.Reflection;
 using Microsoft.AspNetCore.Mvc;
 
-namespace AtomicRegistry.Controllers
+namespace AtomicRegistry.Controllers;
+
+[ApiController]
+[Route("/api/[controller]")]
+public class VersionController : ControllerBase
 {
-    [ApiController]
-    [Route("/api/[controller]")]
-    public class VersionController : ControllerBase
+    [HttpGet]
+    public string Get()
     {
-        [HttpGet]
-        public string Get()
-        {
-            return ((AssemblyInformationalVersionAttribute)Assembly.GetExecutingAssembly().GetCustomAttribute(
-                typeof(AssemblyInformationalVersionAttribute))!).InformationalVersion;
-        }
+        return ((AssemblyInformationalVersionAttribute)Assembly.GetExecutingAssembly().GetCustomAttribute(
+            typeof(AssemblyInformationalVersionAttribute))!).InformationalVersion;
     }
 }
