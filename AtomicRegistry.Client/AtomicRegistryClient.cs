@@ -55,7 +55,7 @@ namespace AtomicRegistry.Client
 
             var clusterResults = result.ReplicaResults
                 .Where(x => x.Response.Code == ResponseCode.Ok)
-                .Select(x => (x.Replica, x.Response.Content.ToString().FromJson<ValueDto>() ?? new ValueDto(-1, null)))
+                .Select(x => (x.Replica, x.Response.Content.ToString().FromJson<ValueDto>() ?? ValueDto.Empty))
                 .OrderByDescending(x => x.Item2.Version)
                 .ToArray();
 
@@ -63,10 +63,12 @@ namespace AtomicRegistry.Client
                 .Where(x => x.Item2.Version != clusterResults[0].Item2.Version)
                 .ToArray();
 
-            foreach (var valueReplica in laggingReplicas)
-                SetInternal(valueReplica.Item2, valueReplica.Replica);
+            var mostRecentValue = clusterResults.First().Item2;
 
-            return clusterResults[0].Item2.Value;
+            foreach (var laggingReplica in laggingReplicas)
+                SetInternal(mostRecentValue, laggingReplica.Replica);
+
+            return mostRecentValue.Value;
         }
 
         public async Task Drop()
@@ -117,9 +119,10 @@ namespace AtomicRegistry.Client
             if (replica != null)
                 requestParameters = requestParameters.WithStrategy(new SelectedReplicaStrategy(replica));
 
+            //todo: some clever way to handle error message from server
             var result = client.SendAsync(request, requestParameters).GetAwaiter().GetResult();
             if (result.Response.Code != ResponseCode.Ok)
-                throw new Exception($"Set result not 200. {result.Status}");
+                throw new Exception($"Set result not 200. {result.ReplicaResults.Select(x => x.Response.Code).ToJson()}");
         }
     }
 }

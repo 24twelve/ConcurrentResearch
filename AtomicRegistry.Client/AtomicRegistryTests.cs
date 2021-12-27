@@ -1,6 +1,5 @@
 ﻿using AtomicRegistry.Dto;
 using FluentAssertions;
-using Microsoft.JSInterop;
 using NUnit.Framework;
 using Vostok.Logging.Abstractions;
 using Vostok.Logging.Console;
@@ -17,7 +16,7 @@ namespace AtomicRegistry.Client
         public void OneTimeSetUp()
         {
             var consoleLog = new ConsoleLog();
-            var fileLogSettings = new FileLogSettings { FilePath = "LocalRuns\\test-log.txt" };
+            var fileLogSettings = new FileLogSettings { FilePath = "LocalRuns\\test-client-log.txt" };
             var fileLog = new FileLog(fileLogSettings);
             client = new AtomicRegistryClient(new AtomicRegistryNodeClusterProvider(),
                 new CompositeLog(consoleLog, fileLog));
@@ -28,7 +27,7 @@ namespace AtomicRegistry.Client
         {
             foreach (var replica in AtomicRegistryNodeClusterProvider.InstancesTopology().Keys)
                 await client.ResetFault(replica);
-            await client.Drop();
+            await client.Drop(); //todo: research cool ways for atomic tests
         }
 
         [Test]
@@ -140,10 +139,6 @@ namespace AtomicRegistry.Client
         [Test]
         public async Task SetIsTakingTooLong_GetRequestsHelpItRestore()
         {
-            //todo: reject old writes on replicas
-            //todo: write on older write on quorum replica
-            //todo: fix test so it always sets up right
-
             var value1 = $"value1-{Guid.NewGuid()}";
 
             Console.WriteLine($"This test value is {value1}");
@@ -168,8 +163,35 @@ namespace AtomicRegistry.Client
             var parallelOptions = new ParallelOptions { MaxDegreeOfParallelism = 2 };
             Parallel.Invoke(parallelOptions, tasks);
 
-            //unfreeze sets
-            //await setTask;
+            await client.InduceFault("Instance1", FaultSettingsDto.UnfreezeFrozenSets);
+            await client.InduceFault("Instance3", FaultSettingsDto.UnfreezeFrozenSets);
+
+            var action = () =>  setTask1.GetAwaiter().GetResult();
+            action.Should().Throw<Exception>(); //todo: some clear exception to tell what happened wrong or even not exception but "TrySet" mechanic
+        }
+
+        [Test]
+        public async Task OldTimestampsGetRejected()
+        {
+            var value1 = $"value1-{Guid.NewGuid()}";
+            Console.WriteLine($"This test value is {value1}");
+
+            await client.Set(value1);
+            await client.Set(value1);
+            await client.Set(value1);
+
+            var consoleLog = new ConsoleLog();
+            var fileLogSettings = new FileLogSettings { FilePath = "LocalRuns\\test-client-log.txt" };
+            var fileLog = new FileLog(fileLogSettings);
+            client = new AtomicRegistryClient(new AtomicRegistryNodeClusterProvider(),
+                new CompositeLog(consoleLog, fileLog));
+
+
+            Action wrongSet = () => client.Set("wrong timestamp value");
+            wrongSet.Should().Throw<Exception>();
+
+            var result = await client.Get();
+            result.Should().Be(value1);
         }
 
         //todo: test with three versions of value

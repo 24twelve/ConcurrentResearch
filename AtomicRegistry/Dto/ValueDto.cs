@@ -16,6 +16,8 @@ public class ValueDto
         Value = value;
     }
 
+    public static ValueDto Empty => new(-1, null);
+
     [JsonProperty("version")] public int? Version { get; private set; }
 
     [JsonProperty("value")] public string? Value { get; private set; }

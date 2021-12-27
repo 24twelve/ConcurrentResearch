@@ -2,6 +2,10 @@ using AtomicRegistry.Configuration;
 using AtomicRegistry.Controllers;
 using AtomicRegistry.Dto;
 using Vostok.Configuration.Sources.Yaml;
+using Vostok.Logging.Abstractions;
+using Vostok.Logging.Console;
+using Vostok.Logging.File;
+using Vostok.Logging.File.Configuration;
 
 namespace AtomicRegistry
 {
@@ -22,9 +26,11 @@ namespace AtomicRegistry
             builder.Services.AddSwaggerGen();
             builder.SetupStorage(instanceName);
             builder.SetupFaultSettings();
+            builder.SetupLogging(instanceName);
 
 
             //todo: if not development, instance name comes from settings
+            //todo: find if there is auto-discover for microsoft DI
 
             var app = builder.Build();
 
@@ -59,6 +65,14 @@ namespace AtomicRegistry
             var faultSettingsProvider = new FaultSettingsProvider(FaultSettingsDto.EverythingOk);
             builder.Services.AddSingleton(faultSettingsProvider);
             builder.Services.AddSingleton(new FaultSettingsObserver(faultSettingsProvider));
+        }
+
+        private static void SetupLogging(this WebApplicationBuilder builder, string instanceName)
+        {
+            var consoleLog = new ConsoleLog();
+            var fileLogSettings = new FileLogSettings { FilePath = $"LocalRuns\\test-log-{instanceName}.txt" };
+            var fileLog = new FileLog(fileLogSettings);
+            builder.Services.AddSingleton<ILog>(new CompositeLog(consoleLog, fileLog));
         }
     }
 }

@@ -1,10 +1,12 @@
-﻿using AtomicRegistry.Configuration;
+﻿using AtomicRegistry.Common;
+using AtomicRegistry.Configuration;
+using AtomicRegistry.Dto;
 
 namespace AtomicRegistry.Controllers;
 
 public class Database
 {
-    private readonly object locker = new object();
+    private readonly object locker = new();
 
     public Database(StorageSettings settings, string instanceName)
     {
@@ -13,16 +15,16 @@ public class Database
 
     private string StorageFilePath { get; }
 
-    public void Write(string value)
+    public void Write(ValueDto value)
     {
         lock (locker)
         {
-            File.WriteAllText(StorageFilePath, value);
+            File.WriteAllText(StorageFilePath, value.ToJson());
         }
     }
 
-    public string Read()
+    public ValueDto Read()
     {
-        return File.ReadAllText(StorageFilePath);
+        return File.ReadAllText(StorageFilePath).FromJson<ValueDto>() ?? ValueDto.Empty;
     }
 }
