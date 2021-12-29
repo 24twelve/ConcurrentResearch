@@ -67,8 +67,8 @@ public class AtomicRegistryClient
         if (shouldGetRepair)
         {
             var laggingReplicas = clusterResults
-                .Where(x => x.Item2.Timestamp != clusterResults[0].Item2.Timestamp)
-                .ToArray();
+                .Where(x => x.Item2.Timestamp != clusterResults[0].Item2.Timestamp || (x.Item2.ClientId != clientId &&
+                    x.Item2.Timestamp == clusterResults[0].Item2.Timestamp)).ToArray();
 
             foreach (var laggingReplica in laggingReplicas)
                 await SetInternal(mostRecentValue, laggingReplica.Replica);
@@ -127,8 +127,8 @@ public class AtomicRegistryClient
 
         //todo: some clever way to handle error message from server
         var result = await client.SendAsync(request, requestParameters);
-        if (result.Response.Code != ResponseCode.Ok)
+        if (result.Response.Code != ResponseCode.Ok && result.Response.Code != ResponseCode.Conflict)
             throw new Exception(
-                $"Set result not 200. {result.ReplicaResults.Select(x => x.Response.Code).ToJson()}. Tried to set {value.ToJson()}");
+                $"Set result not 200, but {result.Response.Code}. {result.ReplicaResults.Select(x => x.Response.Code).ToJson()}. Tried to set {value.ToJson()}");
     }
 }

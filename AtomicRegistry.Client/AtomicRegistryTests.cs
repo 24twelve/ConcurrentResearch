@@ -1,6 +1,7 @@
-﻿using AtomicRegistry.Dto;
+﻿using System.Collections.Concurrent;
+using AtomicRegistry.Configuration;
+using AtomicRegistry.Dto;
 using FluentAssertions;
-using MoreLinq;
 using NUnit.Framework;
 using Vostok.Logging.Abstractions;
 using Vostok.Logging.Console;
@@ -213,35 +214,45 @@ public class AtomicRegistryTests
         result2.Should().Be(client2Value);
     }
 
-    //todo: timestamp contention is too high, how to fix? retry on 409?
-    //todo: read repair for ids too + it totally breaks for 100-10 config
+    //todo: timestamp contention is too high, how to fix? try from papers algorithm?
+    //todo: cycle for 1000 writers!
     [Test]
     public async Task ManyWritersTest()
     {
-        var lastResult = "";
+        ThreadPoolUtility.SetUp(1024);
+
+        var lastResults = new ConcurrentStack<string>();
 
         var clients = Enumerable
-            .Range(0, 5)
-            .Select(x => CreateClient(x.ToString(), shouldNotUseLogs: true));
-        var tasks = clients
-            .Select(c => Enumerable
-                .Repeat(() =>
-                {
-                    var value = Guid.NewGuid().ToString();
-                    c.Set(value).GetAwaiter().GetResult();
-                    lastResult = value;
-                }, 5))
-            .SelectMany(x => x)
-            .Select(x => new Task(x))
-            .Shuffle()
+            .Range(0, 1000)
+            .Select(x => CreateClient(x.ToString(), shouldNotUseLogs: true))
             .ToArray();
 
-        // var parallelOptions = new ParallelOptions { MaxDegreeOfParallelism = 10 };
-        // Parallel.Invoke(parallelOptions, tasks);
-        await Task.WhenAll(tasks);
+
+        var parallelOptions = new ParallelOptions { MaxDegreeOfParallelism = 10 };
+
+        async Task DoSet(AtomicRegistryClient c)
+        {
+            var random = new Random();
+            var value = Guid.NewGuid().ToString();
+            await c.Set(value);
+            await Task.Delay(random.Next(0, 3));
+            value = Guid.NewGuid().ToString();
+            await c.Set(value);
+            await Task.Delay(random.Next(0, 10));
+            value = Guid.NewGuid().ToString();
+            await c.Set(value);
+            await Task.Delay(random.Next(0, 20));
+            value = Guid.NewGuid().ToString();
+            await c.Set(value);
+            lastResults.Push(value);
+        }
+
+        await Parallel.ForEachAsync(clients, parallelOptions, async (c, _) => { await DoSet(c); });
 
         var result = await client.Get();
-        result.Should().Be(lastResult);
+        result.Should()
+            .BeOneOf(lastResults.Take(10)); //todo: extremely unstable...hos to assert happens-before condition?
     }
 
     //todo: test about many writers and monotonous ts growth

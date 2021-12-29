@@ -21,7 +21,7 @@ public class QuorumStrategy : IRequestStrategy
         var tasks = replicas.Select(async replica =>
         {
             ResponseCode replicaResponseCode = 0;
-            while (replicaResponseCode != ResponseCode.Ok)
+            while (replicaResponseCode != ResponseCode.Ok && replicaResponseCode != ResponseCode.Conflict)
             {
                 var replicaResult =
                     await sender.SendToReplicaAsync(replica, request, null, budget.Remaining, cancellationToken);
