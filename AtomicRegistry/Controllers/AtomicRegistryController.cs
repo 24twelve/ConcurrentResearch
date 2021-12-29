@@ -55,13 +55,18 @@ public class AtomicRegistryController : ControllerBase
             return StatusCode(200);
         }
 
-        if (value.Timestamp < currentTimestamp ||
-            (value.Timestamp == currentTimestamp && currentValue.ClientId == value.ClientId))
+        if (value.Timestamp == currentTimestamp && currentValue.ClientId == value.ClientId)
+        {
+            logger.Warn($"Value {value.ToJson()} is current and already exists");
+            return StatusCode(200);
+        }
+
+        if (value.Timestamp < currentTimestamp)
         {
             var errorMessage =
                 $"Cannot write {value.ToJson()}; current timestamp {currentValue.ToJson()} is higher or equal but from same writer";
             logger.Warn(errorMessage);
-            return StatusCode(200, errorMessage);
+            return StatusCode(409, errorMessage);
         }
 
         database.Write(value);
@@ -71,9 +76,10 @@ public class AtomicRegistryController : ControllerBase
     [HttpDelete("drop")]
     public IActionResult Drop()
     {
-        //todo: раскостылить на нормальную очередь запросов или какой-то механизм asp net core
+        //todo: раскостылить на нормальную очередь запросов или какой-то механизм asp net core или cancellation token на drop
+        //todo: кажется, эта штука работает реально медленно и 5 секунд не хватат
         faultSettingsProvider.Push(FaultSettingsDto.EverythingOk);
-        Thread.Sleep(TimeSpan.FromSeconds(5));
+        Thread.Sleep(TimeSpan.FromSeconds(10));
         database.Write(ValueDto.Empty);
         return StatusCode(200);
     }

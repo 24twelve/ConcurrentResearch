@@ -1,5 +1,4 @@
-﻿using System.Collections.Concurrent;
-using AtomicRegistry.Dto;
+﻿using AtomicRegistry.Dto;
 using FluentAssertions;
 using MoreLinq;
 using NUnit.Framework;
@@ -26,7 +25,7 @@ public class AtomicRegistryTests
     {
         foreach (var replica in AtomicRegistryNodeClusterProvider.InstancesTopology().Keys)
             await client.ResetFault(replica);
-        await client.Drop(); //todo: research cool ways for atomic tests
+        await client.Drop(); //todo: research cool ways for atomic tests and not wait 5 seconds
     }
 
     [Test]
@@ -159,32 +158,16 @@ public class AtomicRegistryTests
             result1.Should().Be(value1);
         }, 100).ToArray();
 
-        var parallelOptions = new ParallelOptions { MaxDegreeOfParallelism = 2 };
+        var parallelOptions = new ParallelOptions { MaxDegreeOfParallelism = 20 };
         Parallel.Invoke(parallelOptions, tasks);
 
         await client.InduceFault("Instance1", FaultSettingsDto.UnfreezeFrozenSets);
         await client.InduceFault("Instance3", FaultSettingsDto.UnfreezeFrozenSets);
 
         await setTask1;
-    }
 
-    [Test]
-    public async Task OldTimestampsGetSwallowed()
-    {
-        var value1 = $"value1-{Guid.NewGuid()}";
-        Console.WriteLine($"This test value is {value1}");
-
-        await client.Set(value1);
-        await client.Set(value1);
-        await client.Set(value1);
-
-        var freshTimestampClient = CreateClient("client2");
-
-
-        await freshTimestampClient.Set("wrong timestamp value");
-
-        var result = await client.Get();
-        result.Should().Be(value1);
+        var result2 = await client.Get();
+        result2.Should().Be(value1);
     }
 
     [Test]
@@ -230,15 +213,15 @@ public class AtomicRegistryTests
         result2.Should().Be(client2Value);
     }
 
-    //todo: timestamp contention is too high, how to fix?
-    //todo: read repair for ids too + it totally breaks for 100-100 config
+    //todo: timestamp contention is too high, how to fix? retry on 409?
+    //todo: read repair for ids too + it totally breaks for 100-10 config
     [Test]
     public async Task ManyWritersTest()
     {
         var lastResult = "";
 
         var clients = Enumerable
-            .Range(0, 10)
+            .Range(0, 5)
             .Select(x => CreateClient(x.ToString(), shouldNotUseLogs: true));
         var tasks = clients
             .Select(c => Enumerable
@@ -247,13 +230,15 @@ public class AtomicRegistryTests
                     var value = Guid.NewGuid().ToString();
                     c.Set(value).GetAwaiter().GetResult();
                     lastResult = value;
-                }, 10))
+                }, 5))
             .SelectMany(x => x)
+            .Select(x => new Task(x))
             .Shuffle()
             .ToArray();
 
-        var parallelOptions = new ParallelOptions { MaxDegreeOfParallelism = 10 };
-        Parallel.Invoke(parallelOptions, tasks);
+        // var parallelOptions = new ParallelOptions { MaxDegreeOfParallelism = 10 };
+        // Parallel.Invoke(parallelOptions, tasks);
+        await Task.WhenAll(tasks);
 
         var result = await client.Get();
         result.Should().Be(lastResult);

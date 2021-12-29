@@ -129,6 +129,6 @@ public class AtomicRegistryClient
         var result = await client.SendAsync(request, requestParameters);
         if (result.Response.Code != ResponseCode.Ok)
             throw new Exception(
-                $"Set result not 200. {result.ReplicaResults.Select(x => x.Response.Code).ToJson()}");
+                $"Set result not 200. {result.ReplicaResults.Select(x => x.Response.Code).ToJson()}. Tried to set {value.ToJson()}");
     }
 }
