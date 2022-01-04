@@ -9,7 +9,6 @@ using Vostok.Logging.File;
 using Vostok.Logging.File.Configuration;
 
 namespace AtomicRegistry.Client;
-//todo: test with three versions of value
 
 public class AtomicRegistryTests
 {
@@ -21,6 +20,7 @@ public class AtomicRegistryTests
         client = CreateClient("default");
     }
 
+    //todo: test with three versions of value
     [SetUp]
     public async Task SetUp()
     {
@@ -150,7 +150,7 @@ public class AtomicRegistryTests
         setTask1.IsCompleted.Should().BeFalse();
 
         string? currentGetResult = null;
-        while (currentGetResult != value1) currentGetResult = await client.Get();
+        while (currentGetResult != value1) currentGetResult = (await client.Get())?.Value;
 
 
         Action[] tasks = Enumerable.Repeat(() =>
@@ -214,17 +214,17 @@ public class AtomicRegistryTests
         result2.Should().Be(client2Value);
     }
 
-    //todo: timestamp contention is too high, how to fix? try from papers algorithm?
-    //todo: cycle for 1000 writers!
     [Test]
     public async Task ManyWritersTest()
     {
         ThreadPoolUtility.SetUp(1024);
 
         var lastResults = new ConcurrentStack<string>();
+        var clientsCount = 100;
+        var requestsPerClientCount = 4;
 
         var clients = Enumerable
-            .Range(0, 1000)
+            .Range(0, clientsCount)
             .Select(x => CreateClient(x.ToString(), shouldNotUseLogs: true))
             .ToArray();
 
@@ -251,8 +251,8 @@ public class AtomicRegistryTests
         await Parallel.ForEachAsync(clients, parallelOptions, async (c, _) => { await DoSet(c); });
 
         var result = await client.Get();
-        result.Should()
-            .BeOneOf(lastResults.Take(10)); //todo: extremely unstable...hos to assert happens-before condition?
+        (result?.Timestamp + 1).Should().BeGreaterThan(clientsCount * requestsPerClientCount);
+        result?.Value.Should().BeOneOf(lastResults.Take(10));
     }
 
     //todo: test about many writers and monotonous ts growth

@@ -31,4 +31,19 @@ public class Database
             return File.ReadAllText(StorageFilePath).FromJson<ValueDto>() ?? ValueDto.Empty;
         }
     }
+
+    public bool CompareAndSet(ValueDto next, out ValueDto current)
+    {
+        lock (locker)
+        {
+            current = File.ReadAllText(StorageFilePath).FromJson<ValueDto>() ?? ValueDto.Empty;
+            if (next.Timestamp > current.Timestamp)
+            {
+                File.WriteAllText(StorageFilePath, next.ToJson());
+                return true;
+            }
+
+            return false;
+        }
+    }
 }

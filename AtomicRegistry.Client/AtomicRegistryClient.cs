@@ -1,6 +1,7 @@
 ﻿using AtomicRegistry.Common;
 using AtomicRegistry.Dto;
 using Vostok.Clusterclient.Core;
+using Vostok.Clusterclient.Core.Misc;
 using Vostok.Clusterclient.Core.Model;
 using Vostok.Clusterclient.Core.Retry;
 using Vostok.Clusterclient.Core.Topology;
@@ -36,17 +37,19 @@ public class AtomicRegistryClient
 
     public async Task Set(string value)
     {
-        var currentValue = await GetInternal(false);
-        await SetInternal(new ValueDto((currentValue.Timestamp ?? 0) + 1, value, clientId), null);
+        ClusterResult? clusterResult = null;
+        while (clusterResult == null || clusterResult.Response.Code != ResponseCode.Ok)
+        {
+            var currentValue = await GetInternal(false);
+            clusterResult = await SetInternal(new ValueDto((currentValue.Timestamp ?? 0) + 1, value, clientId), null);
+        }
     }
 
     //todo: some clever way for exception throwing
     //todo: one and forever way to .ConfigureAwait(false) everywhere its needed
-    public async Task<string?> Get()
+    public async Task<ValueDto?> Get()
     {
-        var mostRecentValue = await GetInternal(true);
-
-        return mostRecentValue.Value;
+        return await GetInternal(true);
     }
 
     private async Task<ValueDto> GetInternal(bool shouldGetRepair)
@@ -115,7 +118,7 @@ public class AtomicRegistryClient
             throw new Exception("Post result not 200");
     }
 
-    private async Task SetInternal(ValueDto value, Uri? replica)
+    private async Task<ClusterResult> SetInternal(ValueDto value, Uri? replica)
     {
         var content = value.ToJson();
         var request = Request.Post(new Uri($"api/set", UriKind.Relative))
@@ -123,12 +126,22 @@ public class AtomicRegistryClient
             .WithContentTypeHeader("application/json");
         var requestParameters = new RequestParameters();
         if (replica != null)
+        {
             requestParameters = requestParameters.WithStrategy(new SelectedReplicaStrategy(replica));
-
-        //todo: some clever way to handle error message from server
-        var result = await client.SendAsync(request, requestParameters);
-        if (result.Response.Code != ResponseCode.Ok && result.Response.Code != ResponseCode.Conflict)
-            throw new Exception(
-                $"Set result not 200, but {result.Response.Code}. {result.ReplicaResults.Select(x => x.Response.Code).ToJson()}. Tried to set {value.ToJson()}");
+            var result = await client.SendAsync(request, requestParameters);
+            if (result.Response.Code != ResponseCode.Ok && result.Response.Code != ResponseCode.Conflict)
+                throw new Exception(
+                    $"Set result not 200, but {result.Response.Code}. {result.ReplicaResults.Select(x => x.Response.Code).ToJson()}. Tried to set {value.ToJson()}");
+            return result;
+        }
+        else
+        {
+            requestParameters = requestParameters.WithStrategy(new QuorumStrategy(QuorumReplicaCount));
+            var result = await client.SendAsync(request, requestParameters);
+            if (result.Response.Code != ResponseCode.Ok && result.Response.Code != ResponseCode.Conflict)
+                throw new Exception(
+                    $"Set result not 200, but {result.Response.Code}. {result.ReplicaResults.Select(x => x.Response.Code).ToJson()}. Tried to set {value.ToJson()}");
+            return result;
+        }
     }
 }

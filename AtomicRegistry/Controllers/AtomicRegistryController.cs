@@ -46,30 +46,14 @@ public class AtomicRegistryController : ControllerBase
             while (!faultSettingsObserver.CurrentSettings.ShouldUnfreezeFrozenSets) Thread.Sleep(5);
         }
 
-        var currentValue = database.Read();
-        var currentTimestamp = currentValue.Timestamp;
-        if (value.Timestamp == currentTimestamp && currentValue.ClientId != value.ClientId)
+        if (!database.CompareAndSet(value, out var current))
         {
-            logger.Warn($"Received {value.ToJson()}; current timestamp {currentTimestamp} is equal. Replacing...");
-            database.Write(value);
-            return StatusCode(200);
+            var conflictMessage = $"Cannot write {value.ToJson()}; current timestamp {current.Timestamp} is equal";
+            logger.Warn(conflictMessage);
+            return StatusCode(409, conflictMessage);
         }
 
-        if (value.Timestamp == currentTimestamp && currentValue.ClientId == value.ClientId)
-        {
-            logger.Warn($"Value {value.ToJson()} is current and already exists");
-            return StatusCode(200);
-        }
-
-        if (value.Timestamp < currentTimestamp)
-        {
-            var errorMessage =
-                $"Cannot write {value.ToJson()}; current timestamp {currentValue.ToJson()} is higher or equal but from same writer";
-            logger.Warn(errorMessage);
-            return StatusCode(409, errorMessage);
-        }
-
-        database.Write(value);
+        logger.Info($"Writing {value.ToJson()}");
         return StatusCode(200);
     }
 
