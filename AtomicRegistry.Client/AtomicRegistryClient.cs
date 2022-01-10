@@ -1,7 +1,6 @@
 ﻿using AtomicRegistry.Common;
 using AtomicRegistry.Dto;
 using Vostok.Clusterclient.Core;
-using Vostok.Clusterclient.Core.Misc;
 using Vostok.Clusterclient.Core.Model;
 using Vostok.Clusterclient.Core.Retry;
 using Vostok.Clusterclient.Core.Topology;
@@ -14,11 +13,11 @@ public class AtomicRegistryClient
 {
     private const int QuorumReplicaCount = 2;
     private readonly IClusterClient client;
-    private readonly string clientId;
+    public readonly string ClientId;
 
     public AtomicRegistryClient(IClusterProvider nodeClusterProvider, ILog log, string clientId)
     {
-        this.clientId = clientId;
+        ClientId = clientId;
         client = new ClusterClient(log, configuration =>
         {
             configuration.ClusterProvider = nodeClusterProvider;
@@ -41,7 +40,7 @@ public class AtomicRegistryClient
         while (clusterResult == null || clusterResult.Response.Code != ResponseCode.Ok)
         {
             var currentValue = await GetInternal(false);
-            clusterResult = await SetInternal(new ValueDto((currentValue.Timestamp ?? 0) + 1, value, clientId), null);
+            clusterResult = await SetInternal(new ValueDto((currentValue.Timestamp ?? 0) + 1, value, ClientId), null);
         }
     }
 
@@ -70,8 +69,8 @@ public class AtomicRegistryClient
         if (shouldGetRepair)
         {
             var laggingReplicas = clusterResults
-                .Where(x => x.Item2.Timestamp != clusterResults[0].Item2.Timestamp || (x.Item2.ClientId != clientId &&
-                    x.Item2.Timestamp == clusterResults[0].Item2.Timestamp)).ToArray();
+                .Where(x => x.Item2.Timestamp != clusterResults[0].Item2.Timestamp || x.Item2.ClientId != ClientId &&
+                    x.Item2.Timestamp == clusterResults[0].Item2.Timestamp).ToArray();
 
             foreach (var laggingReplica in laggingReplicas)
                 await SetInternal(mostRecentValue, laggingReplica.Replica);
@@ -94,7 +93,7 @@ public class AtomicRegistryClient
 
     public async Task InduceFault(string instanceName, FaultSettingsDto faultSettingsDto)
     {
-        var request = Request.Post(new Uri($"api/faults/push", UriKind.Relative))
+        var request = Request.Post(new Uri("api/faults/push", UriKind.Relative))
             .WithContent(faultSettingsDto.ToJson())
             .WithContentTypeHeader("application/json");
         var requestParameters = new RequestParameters()
@@ -107,7 +106,7 @@ public class AtomicRegistryClient
 
     public async Task ResetFault(string instanceName)
     {
-        var request = Request.Post(new Uri($"api/faults/push", UriKind.Relative))
+        var request = Request.Post(new Uri("api/faults/push", UriKind.Relative))
             .WithContent(FaultSettingsDto.EverythingOk.ToJson())
             .WithContentTypeHeader("application/json");
         var requestParameters = new RequestParameters()
@@ -121,7 +120,7 @@ public class AtomicRegistryClient
     private async Task<ClusterResult> SetInternal(ValueDto value, Uri? replica)
     {
         var content = value.ToJson();
-        var request = Request.Post(new Uri($"api/set", UriKind.Relative))
+        var request = Request.Post(new Uri("api/set", UriKind.Relative))
             .WithContent(content)
             .WithContentTypeHeader("application/json");
         var requestParameters = new RequestParameters();

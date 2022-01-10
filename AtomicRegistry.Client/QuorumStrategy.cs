@@ -17,7 +17,7 @@ public class QuorumStrategy : IRequestStrategy
         IRequestTimeBudget budget,
         IEnumerable<Uri> replicas, int replicasCount, CancellationToken cancellationToken)
     {
-        int successfulRequests = 0;
+        var successfulRequests = 0;
         var tasks = replicas.Select(async replica =>
         {
             ResponseCode replicaResponseCode = 0;

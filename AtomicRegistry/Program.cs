@@ -6,6 +6,7 @@ using Vostok.Logging.Abstractions;
 using Vostok.Logging.Console;
 using Vostok.Logging.File;
 using Vostok.Logging.File.Configuration;
+using ConfigurationProvider = Vostok.Configuration.ConfigurationProvider;
 
 namespace AtomicRegistry;
 
@@ -49,7 +50,7 @@ public static class Program
 
     private static void SetupStorage(this WebApplicationBuilder builder, string instanceName)
     {
-        var provider = new Vostok.Configuration.ConfigurationProvider();
+        var provider = new ConfigurationProvider();
         provider.SetupSourceFor<StorageSettings>(new YamlFileSource("settings\\storageSettings.yaml"));
         var settings = provider.Get<StorageSettings>();
         if (settings == null)
