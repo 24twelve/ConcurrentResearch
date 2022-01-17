@@ -21,7 +21,6 @@ public static class Program
 
         var instanceArg = args.FirstOrDefault(x => x.StartsWith("--instance="));
         var instanceName = instanceArg != null ? instanceArg.Split('=')[1] : "default";
-        //todo: use service runner + docker maybe (if fast)
 
         builder.Services.AddControllers();
         builder.Services.AddEndpointsApiExplorer();
@@ -30,8 +29,6 @@ public static class Program
         builder.SetupFaultSettings();
         builder.SetupLogging(instanceName);
 
-
-        //todo: if not development, instance name comes from settings
         //todo: find if there is auto-discover for microsoft DI
 
         var app = builder.Build();

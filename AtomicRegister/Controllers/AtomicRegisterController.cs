@@ -14,16 +14,19 @@ public class AtomicRegisterController : ControllerBase
     private readonly FaultSettingsObserver faultSettingsObserver;
     private readonly FaultSettingsProvider faultSettingsProvider;
     private readonly ILog logger;
+    private readonly ConcurrentCounter concurrentCounter;
 
     public AtomicRegisterController(
         FaultSettingsObserver faultSettingsObserver,
         FaultSettingsProvider faultSettingsProvider,
         Database database,
+        ConcurrentCounter concurrentCounter,
         ILog logger)
     {
         this.faultSettingsObserver = faultSettingsObserver;
         this.faultSettingsProvider = faultSettingsProvider;
         this.database = database;
+        this.concurrentCounter = concurrentCounter;
         this.logger = logger;
     }
 
@@ -31,14 +34,24 @@ public class AtomicRegisterController : ControllerBase
     [HttpGet]
     public IActionResult Get()
     {
+        concurrentCounter.Increment();
         while (faultSettingsObserver.CurrentSettings.IsGetFrozen) Thread.Sleep(5);
 
-        return StatusCode(200, database.Read().ToJson());
+        try
+        {
+            return StatusCode(200, database.Read().ToJson());
+        }
+        finally
+        {
+            concurrentCounter.Decrement();
+        }
     }
 
     [HttpPost("set")]
     public IActionResult Set([FromBody] ValueDto value)
     {
+        concurrentCounter.Increment();
+
         while (faultSettingsObserver.CurrentSettings.IsSetFrozen) Thread.Sleep(5);
         if (faultSettingsObserver.CurrentSettings.NextSetFrozen)
         {
@@ -50,20 +63,39 @@ public class AtomicRegisterController : ControllerBase
         {
             var conflictMessage = $"Cannot write {value.ToJson()}; current timestamp {current.Timestamp} is equal";
             logger.Warn(conflictMessage);
-            return StatusCode(409, conflictMessage);
+            try
+            {
+                return StatusCode(409, conflictMessage);
+            }
+            finally
+            {
+                concurrentCounter.Decrement();
+            }
         }
 
         logger.Info($"Writing {value.ToJson()}");
-        return StatusCode(200);
+        try
+        {
+            return StatusCode(200);
+        }
+        finally
+        {
+            concurrentCounter.Decrement();
+        }
     }
 
     [HttpDelete("drop")]
     public IActionResult Drop()
     {
-        //todo: раскостылить на нормальную очередь запросов или какой-то механизм asp net core или cancellation token на drop
-        //todo: кажется, эта штука работает реально медленно и 5 секунд не хватат
         faultSettingsProvider.Push(FaultSettingsDto.EverythingOk);
-        Thread.Sleep(TimeSpan.FromSeconds(10));
+        int? runningRequests = null;
+        while (runningRequests is null or > 0)
+        {
+            runningRequests = concurrentCounter.CurrentCount;
+            logger.Info($"Waiting for all requests to finish. Pending requests: {runningRequests}");
+            Thread.Sleep(TimeSpan.FromMilliseconds(1));
+        }
+
         database.Write(ValueDto.Empty);
         return StatusCode(200);
     }

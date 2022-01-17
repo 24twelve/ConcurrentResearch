@@ -10,7 +10,7 @@ public class Database
 
     public Database(StorageSettings settings, string instanceName)
     {
-        StorageFilePath = settings.InstanceNameFilePath[instanceName] ?? throw new ArgumentNullException();
+        StorageFilePath = settings.InstanceNameFilePath[instanceName] ?? throw new ArgumentNullException(instanceName);
     }
 
     private string StorageFilePath { get; }
@@ -37,13 +37,9 @@ public class Database
         lock (locker)
         {
             current = File.ReadAllText(StorageFilePath).FromJson<ValueDto>() ?? ValueDto.Empty;
-            if (next.Timestamp > current.Timestamp)
-            {
-                File.WriteAllText(StorageFilePath, next.ToJson());
-                return true;
-            }
-
-            return false;
+            if (!(next.Timestamp > current.Timestamp)) return false;
+            File.WriteAllText(StorageFilePath, next.ToJson());
+            return true;
         }
     }
 }

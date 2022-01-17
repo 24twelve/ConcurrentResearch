@@ -2,13 +2,10 @@
 
 namespace AtomicRegister.Dto;
 
-//todo: cool structure for these commands
 public class FaultSettingsDto
 {
     public static readonly FaultSettingsDto EverythingOk = new(false, false, false, true);
     public static readonly FaultSettingsDto AllFrozen = new(true, true, false, false);
-    public static readonly FaultSettingsDto GetFrozen = new(true, false, false, false);
-    public static readonly FaultSettingsDto SetFrozen = new(false, true, false, false);
     public static readonly FaultSettingsDto OneSetFrozen = new(false, false, true, false);
     public static readonly FaultSettingsDto UnfreezeFrozenSets = new(false, false, false, true);
 

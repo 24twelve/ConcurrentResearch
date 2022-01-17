@@ -25,7 +25,7 @@ public class AtomicRegisterTests
     {
         foreach (var replica in AtomicRegisterNodeClusterProvider.InstancesTopology().Keys)
             await client.ResetFault(replica);
-        await client.Drop(); //todo: research cool ways for atomic tests and not wait 5 seconds
+        await client.Drop();
     }
 
     [Test]
@@ -149,8 +149,8 @@ public class AtomicRegisterTests
             while (!ct.IsCancellationRequested)
             {
                 await File.AppendAllLinesAsync("C:\\workspace\\temp\\thread-pool.json",
-                    new[] { ThreadPoolUtility.GetThreadPoolState().ToString() });
-                await Task.Delay(TimeSpan.FromSeconds(1));
+                    new[] { ThreadPoolUtility.GetThreadPoolState().ToString() }, ct);
+                await Task.Delay(TimeSpan.FromSeconds(1), ct);
             }
         }
 
@@ -182,12 +182,12 @@ public class AtomicRegisterTests
 
         var writersTask = Task.Run(
             async () => await Parallel.ForEachAsync(writerClients, parallelOptions,
-                async (cl, _) => await WriteIndefinitely(cl, cancellationToken.Token)));
+                async (cl, _) => await WriteIndefinitely(cl, cancellationToken.Token)), cancellationToken.Token);
 
 
         var readersTask = Task.Run(
             async () => await Parallel.ForEachAsync(readerClients, parallelOptions,
-                async (cl, _) => await AssertMonotonicReads(cl, cancellationToken.Token)));
+                async (cl, _) => await AssertMonotonicReads(cl, cancellationToken.Token)), cancellationToken.Token);
 
 
         await Task.Delay(TimeSpan.FromSeconds(30), cancellationToken.Token);
@@ -210,8 +210,8 @@ public class AtomicRegisterTests
             while (!ct.IsCancellationRequested)
             {
                 await File.AppendAllLinesAsync("C:\\workspace\\temp\\thread-pool.json",
-                    new[] { ThreadPoolUtility.GetThreadPoolState().ToString() });
-                await Task.Delay(TimeSpan.FromSeconds(1));
+                    new[] { ThreadPoolUtility.GetThreadPoolState().ToString() }, ct);
+                await Task.Delay(TimeSpan.FromSeconds(1), ct);
             }
         }
 

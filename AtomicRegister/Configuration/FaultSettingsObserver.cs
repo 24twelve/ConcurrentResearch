@@ -1,6 +1,7 @@
 using AtomicRegister.Common;
 using AtomicRegister.Dto;
 using Vostok.Configuration.Abstractions.SettingsTree;
+using IConfigurationSource = Vostok.Configuration.Abstractions.IConfigurationSource;
 
 namespace AtomicRegister.Configuration;
 
@@ -8,7 +9,7 @@ public class FaultSettingsObserver : IObserver<(ISettingsNode, Exception)>
 {
     private readonly IDisposable unsubscriber;
 
-    public FaultSettingsObserver(FaultSettingsProvider settingsProvider)
+    public FaultSettingsObserver(IConfigurationSource settingsProvider)
     {
         unsubscriber = settingsProvider.Observe().Subscribe(this);
     }
