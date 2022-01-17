@@ -20,7 +20,6 @@ public class AtomicRegistryTests
         client = CreateClient("default");
     }
 
-    //todo: test with three versions of value
     [SetUp]
     public async Task SetUp()
     {
@@ -243,11 +242,11 @@ public class AtomicRegistryTests
 
         var writersTask = Task.Run(
             async () => await Parallel.ForEachAsync(writerClients, parallelOptions,
-                async (cl, _) => await WriteIndefinitely(cl, cancellationToken.Token)));
+                async (cl, _) => await WriteIndefinitely(cl, cancellationToken.Token)), cancellationToken.Token);
 
         var readersTask = Task.Run(
             async () => await Parallel.ForEachAsync(readerClients, parallelOptions,
-                async (cl, _) => await AssertMonotonicWrites(cl, cancellationToken.Token)));
+                async (cl, _) => await AssertMonotonicWrites(cl, cancellationToken.Token)), cancellationToken.Token);
 
         await Task.Delay(TimeSpan.FromSeconds(30), cancellationToken.Token);
 
@@ -295,7 +294,7 @@ public class AtomicRegistryTests
         Action[] tasks = Enumerable.Repeat(() =>
         {
             var result1 = client.Get().GetAwaiter().GetResult();
-            result1.Should().Be(value1);
+            result1!.Value.Should().Be(value1);
         }, 100).ToArray();
 
         var parallelOptions = new ParallelOptions { MaxDegreeOfParallelism = 20 };
@@ -394,7 +393,6 @@ public class AtomicRegistryTests
         result?.Value.Should().BeOneOf(lastResults.Take(10));
     }
 
-    //todo: test about many writers and monotonous ts growth
     private static AtomicRegistryClient CreateClient(string clientId, bool shouldNotUseLogs = false)
     {
         var consoleLog = new ConsoleLog();
