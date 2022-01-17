@@ -1,5 +1,5 @@
-﻿using AtomicRegistry.Common;
-using AtomicRegistry.Dto;
+﻿using AtomicRegister.Common;
+using AtomicRegister.Dto;
 using Vostok.Clusterclient.Core;
 using Vostok.Clusterclient.Core.Model;
 using Vostok.Clusterclient.Core.Retry;
@@ -7,15 +7,15 @@ using Vostok.Clusterclient.Core.Topology;
 using Vostok.Clusterclient.Transport;
 using Vostok.Logging.Abstractions;
 
-namespace AtomicRegistry.Client;
+namespace AtomicRegister.Client;
 
-public class AtomicRegistryClient
+public class AtomicRegisterClient
 {
     private const int QuorumReplicaCount = 2;
     private readonly IClusterClient client;
     public readonly string ClientId;
 
-    public AtomicRegistryClient(IClusterProvider nodeClusterProvider, ILog log, string clientId)
+    public AtomicRegisterClient(IClusterProvider nodeClusterProvider, ILog log, string clientId)
     {
         ClientId = clientId;
         client = new ClusterClient(log, configuration =>
@@ -88,7 +88,7 @@ public class AtomicRegistryClient
             .WithContentTypeHeader("application/json");
         var requestParameters = new RequestParameters()
             .WithStrategy(
-                new SelectedReplicaStrategy(AtomicRegistryNodeClusterProvider.InstancesTopology()[instanceName]));
+                new SelectedReplicaStrategy(AtomicRegisterNodeClusterProvider.InstancesTopology()[instanceName]));
         var result = await client.SendAsync(request, requestParameters);
         if (result.Response.Code != ResponseCode.Ok)
             throw new Exception("Post result not 200");
@@ -101,7 +101,7 @@ public class AtomicRegistryClient
             .WithContentTypeHeader("application/json");
         var requestParameters = new RequestParameters()
             .WithStrategy(
-                new SelectedReplicaStrategy(AtomicRegistryNodeClusterProvider.InstancesTopology()[instanceName]));
+                new SelectedReplicaStrategy(AtomicRegisterNodeClusterProvider.InstancesTopology()[instanceName]));
         var result = await client.SendAsync(request, requestParameters);
         if (result.Response.Code != ResponseCode.Ok)
             throw new Exception("Post result not 200");

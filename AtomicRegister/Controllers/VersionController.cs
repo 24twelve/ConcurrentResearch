@@ -1,7 +1,7 @@
 ﻿using System.Reflection;
 using Microsoft.AspNetCore.Mvc;
 
-namespace AtomicRegistry.Controllers;
+namespace AtomicRegister.Controllers;
 
 [ApiController]
 [Route("/api/[controller]")]

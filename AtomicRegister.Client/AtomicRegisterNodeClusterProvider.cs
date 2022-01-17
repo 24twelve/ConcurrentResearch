@@ -1,8 +1,8 @@
 ﻿using Vostok.Clusterclient.Core.Topology;
 
-namespace AtomicRegistry.Client;
+namespace AtomicRegister.Client;
 
-public class AtomicRegistryNodeClusterProvider : IClusterProvider
+public class AtomicRegisterNodeClusterProvider : IClusterProvider
 {
     public IList<Uri> GetCluster()
     {

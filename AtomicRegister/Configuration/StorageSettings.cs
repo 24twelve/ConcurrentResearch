@@ -1,4 +1,4 @@
-﻿namespace AtomicRegistry.Configuration;
+﻿namespace AtomicRegister.Configuration;
 
 public class StorageSettings
 {

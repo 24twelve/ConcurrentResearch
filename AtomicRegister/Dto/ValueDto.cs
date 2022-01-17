@@ -1,6 +1,6 @@
 ﻿using Newtonsoft.Json;
 
-namespace AtomicRegistry.Dto;
+namespace AtomicRegister.Dto;
 
 [JsonObject(MemberSerialization.OptIn)]
 public class ValueDto

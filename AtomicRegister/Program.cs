@@ -1,6 +1,6 @@
-using AtomicRegistry.Configuration;
-using AtomicRegistry.Controllers;
-using AtomicRegistry.Dto;
+using AtomicRegister.Configuration;
+using AtomicRegister.Controllers;
+using AtomicRegister.Dto;
 using Vostok.Configuration.Sources.Yaml;
 using Vostok.Logging.Abstractions;
 using Vostok.Logging.Console;
@@ -8,7 +8,7 @@ using Vostok.Logging.File;
 using Vostok.Logging.File.Configuration;
 using ConfigurationProvider = Vostok.Configuration.ConfigurationProvider;
 
-namespace AtomicRegistry;
+namespace AtomicRegister;
 
 public static class Program
 {

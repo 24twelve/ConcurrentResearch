@@ -1,6 +1,6 @@
 ﻿using Newtonsoft.Json;
 
-namespace AtomicRegistry.Dto;
+namespace AtomicRegister.Dto;
 
 //todo: cool structure for these commands
 public class FaultSettingsDto

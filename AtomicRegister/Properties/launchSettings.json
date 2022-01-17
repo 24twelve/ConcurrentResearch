@@ -9,7 +9,7 @@
     }
   },
   "profiles": {
-    "AtomicRegistry": {
+    "AtomicRegister": {
       "commandName": "Project",
       "dotnetRunMessages": true,
       "launchBrowser": true,

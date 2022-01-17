@@ -1,8 +1,8 @@
-﻿using AtomicRegistry.Configuration;
-using AtomicRegistry.Dto;
+﻿using AtomicRegister.Configuration;
+using AtomicRegister.Dto;
 using Microsoft.AspNetCore.Mvc;
 
-namespace AtomicRegistry.Controllers;
+namespace AtomicRegister.Controllers;
 
 [Route("/api/faults")]
 public class FaultController : ControllerBase

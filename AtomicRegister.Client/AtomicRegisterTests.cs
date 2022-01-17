@@ -1,6 +1,6 @@
 ﻿using System.Collections.Concurrent;
-using AtomicRegistry.Configuration;
-using AtomicRegistry.Dto;
+using AtomicRegister.Configuration;
+using AtomicRegister.Dto;
 using FluentAssertions;
 using NUnit.Framework;
 using Vostok.Logging.Abstractions;
@@ -8,11 +8,11 @@ using Vostok.Logging.Console;
 using Vostok.Logging.File;
 using Vostok.Logging.File.Configuration;
 
-namespace AtomicRegistry.Client;
+namespace AtomicRegister.Client;
 
-public class AtomicRegistryTests
+public class AtomicRegisterTests
 {
-    private AtomicRegistryClient client = null!;
+    private AtomicRegisterClient client = null!;
 
     [OneTimeSetUp]
     public void OneTimeSetUp()
@@ -23,7 +23,7 @@ public class AtomicRegistryTests
     [SetUp]
     public async Task SetUp()
     {
-        foreach (var replica in AtomicRegistryNodeClusterProvider.InstancesTopology().Keys)
+        foreach (var replica in AtomicRegisterNodeClusterProvider.InstancesTopology().Keys)
             await client.ResetFault(replica);
         await client.Drop(); //todo: research cool ways for atomic tests and not wait 5 seconds
     }
@@ -127,7 +127,7 @@ public class AtomicRegistryTests
 
         var clients = Enumerable.Range(0, 1000).Select(i => CreateClient($"{i}")).ToArray();
 
-        async Task GetAndAssert(AtomicRegistryClient cl)
+        async Task GetAndAssert(AtomicRegisterClient cl)
         {
             var result1 = await cl.Get();
             result1!.Value.Should().Be(value1);
@@ -157,7 +157,7 @@ public class AtomicRegistryTests
         var loggingTask = Task.Run(async () => await ThreadPoolStateReporter(cancellationToken.Token),
             cancellationToken.Token);
 
-        async Task AssertMonotonicReads(AtomicRegistryClient cl, CancellationToken ct)
+        async Task AssertMonotonicReads(AtomicRegisterClient cl, CancellationToken ct)
         {
             var result = await cl.Get();
             result.Should().NotBeNull();
@@ -169,7 +169,7 @@ public class AtomicRegistryTests
             }
         }
 
-        async Task WriteIndefinitely(AtomicRegistryClient cl, CancellationToken ct)
+        async Task WriteIndefinitely(AtomicRegisterClient cl, CancellationToken ct)
         {
             while (!ct.IsCancellationRequested) await cl.Set($"{cl.ClientId}-{Guid.NewGuid()}");
         }
@@ -222,20 +222,20 @@ public class AtomicRegistryTests
         var writerClients = Enumerable.Range(0, writerCount).Select(i => CreateClient($"writer-{i}")).ToArray();
         var parallelOptions = new ParallelOptions { MaxDegreeOfParallelism = 1024 };
 
-        async Task AssertMonotonicWrites(AtomicRegistryClient cl, CancellationToken ct)
+        async Task AssertMonotonicWrites(AtomicRegisterClient cl, CancellationToken ct)
         {
             var observedVersions = new Dictionary<string, int>();
             while (!ct.IsCancellationRequested)
             {
                 var result = await cl.Get();
-                if (result!.ClientId != null && observedVersions.ContainsKey(result!.ClientId!))
-                    result.Timestamp.Should().BeGreaterOrEqualTo(observedVersions[result!.ClientId!]);
+                if (result!.ClientId != null && observedVersions.ContainsKey(result.ClientId!))
+                    result.Timestamp.Should().BeGreaterOrEqualTo(observedVersions[result.ClientId!]);
 
-                if (result!.ClientId != null) observedVersions[result!.ClientId!] = result!.Timestamp!.Value;
+                if (result.ClientId != null) observedVersions[result.ClientId!] = result.Timestamp!.Value;
             }
         }
 
-        async Task WriteIndefinitely(AtomicRegistryClient cl, CancellationToken ct)
+        async Task WriteIndefinitely(AtomicRegisterClient cl, CancellationToken ct)
         {
             while (!ct.IsCancellationRequested) await cl.Set($"{cl.ClientId}-{Guid.NewGuid()}");
         }
@@ -369,7 +369,7 @@ public class AtomicRegistryTests
 
         var parallelOptions = new ParallelOptions { MaxDegreeOfParallelism = 10 };
 
-        async Task DoSet(AtomicRegistryClient c)
+        async Task DoSet(AtomicRegisterClient c)
         {
             var random = new Random();
             var value = Guid.NewGuid().ToString();
@@ -393,13 +393,13 @@ public class AtomicRegistryTests
         result?.Value.Should().BeOneOf(lastResults.Take(10));
     }
 
-    private static AtomicRegistryClient CreateClient(string clientId, bool shouldNotUseLogs = false)
+    private static AtomicRegisterClient CreateClient(string clientId, bool shouldNotUseLogs = false)
     {
         var consoleLog = new ConsoleLog();
         var fileLogSettings = new FileLogSettings { FilePath = $"LocalRuns\\test-client-log-{clientId}.txt" };
         var fileLog = new FileLog(fileLogSettings);
         ILog resultLog = shouldNotUseLogs ? new SilentLog() : new CompositeLog(consoleLog, fileLog);
-        return new AtomicRegistryClient(new AtomicRegistryNodeClusterProvider(),
+        return new AtomicRegisterClient(new AtomicRegisterNodeClusterProvider(),
             resultLog, clientId);
     }
 }

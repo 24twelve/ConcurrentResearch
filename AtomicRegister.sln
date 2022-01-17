@@ -1,8 +1,8 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AtomicRegistry", "AtomicRegistry\AtomicRegistry.csproj", "{274BE6F3-AA9B-49EC-B80E-DEA01742EB3F}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AtomicRegister", "AtomicRegister\AtomicRegister.csproj", "{274BE6F3-AA9B-49EC-B80E-DEA01742EB3F}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AtomicRegistry.Client", "AtomicRegistry.Client\AtomicRegistry.Client.csproj", "{66FF17EB-ECC9-4786-A09B-F4CAEFF4EAA1}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AtomicRegister.Client", "AtomicRegister.Client\AtomicRegister.Client.csproj", "{66FF17EB-ECC9-4786-A09B-F4CAEFF4EAA1}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

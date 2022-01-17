@@ -2,7 +2,7 @@
 using Vostok.Clusterclient.Core.Sending;
 using Vostok.Clusterclient.Core.Strategies;
 
-namespace AtomicRegistry.Client;
+namespace AtomicRegister.Client;
 
 public class AllReplicas200Strategy : IRequestStrategy
 {

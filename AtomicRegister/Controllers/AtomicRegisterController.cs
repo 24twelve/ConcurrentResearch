@@ -1,21 +1,21 @@
-﻿using AtomicRegistry.Common;
-using AtomicRegistry.Configuration;
-using AtomicRegistry.Dto;
+﻿using AtomicRegister.Common;
+using AtomicRegister.Configuration;
+using AtomicRegister.Dto;
 using Microsoft.AspNetCore.Mvc;
 using Vostok.Logging.Abstractions;
 
-namespace AtomicRegistry.Controllers;
+namespace AtomicRegister.Controllers;
 
 [ApiController]
 [Route("/api")]
-public class AtomicRegistryController : ControllerBase
+public class AtomicRegisterController : ControllerBase
 {
     private readonly Database database;
     private readonly FaultSettingsObserver faultSettingsObserver;
     private readonly FaultSettingsProvider faultSettingsProvider;
     private readonly ILog logger;
 
-    public AtomicRegistryController(
+    public AtomicRegisterController(
         FaultSettingsObserver faultSettingsObserver,
         FaultSettingsProvider faultSettingsProvider,
         Database database,

@@ -18,7 +18,7 @@
     </ItemGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\AtomicRegistry\AtomicRegistry.csproj"/>
+        <ProjectReference Include="..\AtomicRegister\AtomicRegister.csproj"/>
     </ItemGroup>
 
 </Project>

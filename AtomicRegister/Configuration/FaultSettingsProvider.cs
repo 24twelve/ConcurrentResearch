@@ -1,9 +1,9 @@
-﻿using AtomicRegistry.Common;
-using AtomicRegistry.Dto;
+﻿using AtomicRegister.Common;
+using AtomicRegister.Dto;
 using Vostok.Configuration.Abstractions.SettingsTree;
 using Vostok.Configuration.Sources.Manual;
 
-namespace AtomicRegistry.Configuration;
+namespace AtomicRegister.Configuration;
 
 public class FaultSettingsProvider : ManualFeedSource<FaultSettingsDto>
 {

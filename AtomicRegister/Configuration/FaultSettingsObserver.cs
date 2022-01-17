@@ -1,8 +1,8 @@
-using AtomicRegistry.Common;
-using AtomicRegistry.Dto;
+using AtomicRegister.Common;
+using AtomicRegister.Dto;
 using Vostok.Configuration.Abstractions.SettingsTree;
 
-namespace AtomicRegistry.Configuration;
+namespace AtomicRegister.Configuration;
 
 public class FaultSettingsObserver : IObserver<(ISettingsNode, Exception)>
 {

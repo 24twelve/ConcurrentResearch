@@ -1,8 +1,8 @@
-﻿using AtomicRegistry.Common;
-using AtomicRegistry.Configuration;
-using AtomicRegistry.Dto;
+﻿using AtomicRegister.Common;
+using AtomicRegister.Configuration;
+using AtomicRegister.Dto;
 
-namespace AtomicRegistry.Controllers;
+namespace AtomicRegister.Controllers;
 
 public class Database
 {

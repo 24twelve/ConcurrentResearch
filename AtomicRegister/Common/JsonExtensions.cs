@@ -1,6 +1,6 @@
 ﻿using Newtonsoft.Json;
 
-namespace AtomicRegistry.Common;
+namespace AtomicRegister.Common;
 
 public static class JsonExtensions
 {
