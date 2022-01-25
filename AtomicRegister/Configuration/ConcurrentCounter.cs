@@ -6,16 +6,25 @@ namespace AtomicRegister.Configuration;
 public class ConcurrentCounter
 {
     private int counter;
-
-    public int CurrentCount => counter;
-
-    public void Increment()
+    public int LeaseCount => counter;
+    public Lease TakeLease()
     {
-        Interlocked.Increment(ref counter);
+        return new Lease(this);
     }
 
-    public void Decrement()
+    public class Lease : IDisposable
     {
-        Interlocked.Decrement(ref counter);
+        private readonly ConcurrentCounter counter;
+
+        public Lease(ConcurrentCounter counter)
+        {
+            this.counter = counter;
+            Interlocked.Increment(ref counter.counter);
+        }
+
+        public void Dispose()
+        {
+            Interlocked.Decrement(ref counter.counter);
+        }
     }
 }

@@ -28,6 +28,7 @@ public static class Program
         builder.SetupStorage(instanceName);
         builder.SetupFaultSettings();
         builder.SetupLogging(instanceName);
+        builder.Services.AddSingleton(new ConcurrentCounter());
 
         //todo: find if there is auto-discover for microsoft DI
 
